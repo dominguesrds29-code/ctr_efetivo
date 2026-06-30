@@ -27,11 +27,7 @@ try {
         echo "Coluna 'escala' adicionada à tabela militares.\n";
     }
 
-    // Criar tabelas adicionais se não existirem
-    $db->exec("CREATE TABLE IF NOT EXISTS secoes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nome VARCHAR(100) UNIQUE NOT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    // As seções agora são campos de texto livre, sem tabela de domínio separada.
 
     $db->exec("CREATE TABLE IF NOT EXISTS usuarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -87,7 +83,6 @@ try {
     $lineCount = 0;
     $db->beginTransaction();
 
-    $stmtSecao = $db->prepare("INSERT IGNORE INTO secoes (nome) VALUES (?)");
     $stmtCheckMilitar = $db->prepare("SELECT id FROM militares WHERE UPPER(TRIM(nome)) = ?");
     $stmtUpdateMilitar = $db->prepare("UPDATE militares SET secao = ?, escala = ? WHERE id = ?");
     $stmtInsertMilitar = $db->prepare("INSERT INTO militares (nome, secao, escala, posto_grad) VALUES (?, ?, ?, ?)");
