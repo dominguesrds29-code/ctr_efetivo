@@ -1,0 +1,10 @@
+# .gitignore
+# Ignorar banco de dados local SQLite
+database.sqlite
+
+# XAMPP / Arquivos temporários do OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.tmp
+*.log

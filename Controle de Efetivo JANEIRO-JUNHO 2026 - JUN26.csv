@@ -1,0 +1,97 @@
+CONTROLE DE EFETIVO,,,,,"NÃO CLICAR EM ""RESOLVER"" COMENTÁRIO",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+LEGENDA,,QTD,DEZEMBRO DE 2025,,1,2,3,4,5,,,8,9,10,11,12,,,15,16,17,18,19,,,22,23,24,25,26,,,29,30,,Total P,"Total C, M, SV",
+,,,,,SEG,TER,QUA,QUI,SEX,,,SEG,TER,QUA,QUI,SEX,,,SEG,TER,QUA,QUI,SEX,,,SEG,TER,QUA,QUI,SEX,,,SEG,TER,,,,
+P,PRESENTE,1,SEC-SA,2S CAROLINA ALENCAR,P,P,P,FR,EA,,,D,-,-,-,-,,,-,-,-,-,-,,,-,-,-,-,-,,,-,-,,2,0,2
+A,AUSENTE,2,,2S ALESSANDRA,DM,HO,P,FR,EA,,,P,P,P,P,P,,,P,B,EA,P,P,,,P,P,EA,PA,,,,EA,,,12,0,12
+PA,FALERT A,3,,2S JOÃO PAULO,P,P,P,FR,EA,,,F,F,F,F,F,F,F,F,F,F,F,F,,,P,M,EA,SV,,,,M,M,,3,4,7
+PB,FALERT B,4,,CB P.CORRÊA,F,F,F,FR,EA,,,P,P,P,P,P,,,P,P,SV,P,P,,,P,M,EA,P,,,,C,C,,11,4,15
+F,FÉRIAS,5,,S1 BORBONHA,P,P,SV,FR,EA,,,P,P,D,P,SV,,,P,L,L,L,L,L,L,L,L,EA,SV,,,,EA,,,5,3,8
+AIS,Escala AIS,6,SSTI,SO PEREIRA,P,P,P,FR,EA,,,P,DP,P,P,P,,,P,P,EA,P,P,,,F,F,F,F,F,,,F,F,,11,0,11
+DM,DISPENSA MÉDICA,7,,SO DOMINGUES,P,P,P,FR,EA,,,P,P,P,P,P,,,P,P,EA,P,P,,,P,P,EA,B,P,,,EA,P,,15,0,15
+D,DISPENSADO,8,,SO R/1 CLAUDIONOR,P,P,P,FR,EA,,,DP,P,P,P,P,,,P,P,EA,P,P,,,D,P,EA,PA,P,,,EA,P,,15,0,15
+FS,FOLGA SOBREAVISO,9,,CB M.LIMA,P,P,P,FR,EA,,,P,M,DP,P,P,,,P,P,EA,P,P,,,P,P,EA,FM,FM,,,C,C,,12,5,17
+M,MISSÃO,10,,S2 G. CÂNDIDO,C,C,C,C,C,,,C,C,C,C,C,,,C,C,C,C,C,,,C,C,EA,PA,P,,,EA,P,,3,16,19
+C,CURSO,11,SSIS,1S WINNIE,P,P,D,FR,EA,,,P,PA,P,PA,D,,,P,P,EA,P,D,,,D,P,EA,B,,,,EA,,,9,0,9
+SV,SERVIÇO,12,,S2 SERAFIM,D,SV,SSV,FR,SV,,,PB,P,P,M,P,,,P,P,SV,P,,,,L,L,L,L,L,L,L,L,,,7,4,11
+SSV,SAINDO DE SERVIÇO,13,,S2 LUIZ LOPES,SV,SSV,P,FR,EA,,,P,P,SV,SSV,P,,,P,P,EA,D,,,,P,SV,EA,P,,,,EA,,,8,2,10
+LPM,LICENÇA PATERNIDADE/MAT,14,,S2 ESDRAS,P,P,P,FR,EA,,,P,SV,D,D,D,,,P,P,EA,P,,,,P,P,EA,P,,,,EA,,,9,1,10
+L ,LUTO,15,SELT,SO ALEX,P,P,P,FR,EA,,,P,P,FS,P,FS,,,P,P,EA,P,P,,,D,DM,EA,DM,DM,,,DM,,,9,0,9
+TWR,Escala TWR,16,,SO BECKMANN,P,P,PB,FR,EA,,,P,D,P,PA,P,,,P,PA,EA,P,P,,,FS,M,EA,FS,FM,,,EA,,,10,2,12
+EMS,Escala EMS,17,,SO MICHELY,P,PA,P,FR,EA,,,PA,P,P,PA,P,,,P,PA,EA,P,P,,,P,PA,EA,PB,FM,,,EA,,,14,1,15
+INS,Instalação,18,,1S BIANCA,P,DM,D,FR,EA,,,F,F,F,F,F,F,F,F,F,F,P,P,,,P,P,EA,PA,P,,,EA,,,6,0,6
+DP,Dispensa Parcial,19,,1S RAMOS,P,P,PA,FR,EA,,,P,P,P,M,P,,,C,C,C,C,C,,,P,P,EA,PB,FM,,,EA,,,9,7,16
+NP,Núpcias,20,,1S BRUNO SILVA,P,M,C,FR,EA,,,P,P,C,P,D,,,C,C,C,C,C,,,P,P,EA,PA,FS,,,EA,,,6,8,14
+O,Operacional,21,,S2 AZUMA,P,P,D,FR,EA,,,SV,P,P,P,P,,,SV,SSV,EA,P,SSV,,,SSV,P,EA,P,P,,,EA,,,9,2,11
+FR,Feriado,22,SELM,1S NOGUEIRA,F,F,F,FR,EA,,,P,P,P,M,FS,,,P,P,EA,P,P,,,FS,P,EA,PB,D,,,EA,,,9,1,10
+EA,Expediente Administrativo,23,,2S ALEX RAMOS,P,P,P,FR,EA,,,FS,FS,D,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,,2,0,2
+FM,Formatura,24,,2S MARRANI,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,,,P,P,EA,PA,FM,,,EA,,,3,19,22
+PF,Planejamento de Férias,25,,3S ANA FLÁVIA,P,M,P,FR,EA,,,P,P,FS,P,P,,,PA,P,EA,P,FS,,,P,P,EA,PB,P,,,EA,,,12,1,13
+TACF,Avaliação Teste Físico,26,,S1 LUAN,P,P,P,FR,EA,,,P,SV,P,P,P,,,P,P,EA,P,P,,,P,P,EA,P,FM,,,EA,,,13,2,15
+INSP,INSPEÇÃO,27,,S2 L. MOREIRA,P,P,P,FR,EA,,,SSV,P,SSV,SV,SSV,,,SSV,P,EA,P,P,,,P,D,SV,SSV,FM,,,EA,,,7,3,10
+HO,HOME OFFICE,28,SUP,2S MAYSE,LPM,LPM,LPM,LPM,LPM,,,LPM,LPM,LPM,LPM,LPM,,,LPM,LPM,LPM,LPM,LPM,,,LPM,LPM,LPM,LPM,LPM,,,LPM,LPM,,0,0,0
+,,29,,CB GABRIEL,P,P,P,FR,EA,,,P,P,P,D,P,,,P,P,SV,SSV,P,,,P,P,SV,SSV,,,,C,C,,11,4,15
+,,30,,S1 G MIRANDA,F,F,F,FR,EA,,,P,P,P,P,P,,,D,P,EA,P,P,,,D,P,EA,P,,,,EA,,,10,0,10
+,,31,SEC-SO,SO INGRID,P,P,PA,FR,FR,,,PA,PA,PA,PA,PA,,,TWR,TWR,EA,PA,PA,,,TWR,PA,F,F,F,F,F,F,F,,10,3,13
+,,32,,1S TAIS,TWR,P,P,FR,FR,,,P,TWR,PB,PB,P,,,B,,EA,TWR,PA,,,PB,TWR,EA,TWR,,,,EA,TWR,,8,5,13
+,,33,,2S CAROLINA ALENCAR,-,-,-,-,-,,,-,P,M,M,M,,,P,P,EA,P,P,,,P,B,EA,B,,,,EA,,,6,3,9
+,,34,,2S MARCELE DILÉO,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,DM,,0,0,0
+,,35,,2S ANA POMPEO,P,P,P,FR,FR,,,P,P,DM,P,DM,,,P,P,EA,P,P,,,P,P,EA,PA,,,,EA,,,12,0,12
+,,36,,3S LUCAS ROBERTO,P,P,P,FR,FR,,,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,TWR,EA,TWR,,2,22,24
+,,37,,S2 THOMAZ,P,P,P,FR,FR,,,P,P,P,P,P,,,P,SV,EA,P,SV,,,SV,M,EA,P,D,,,EA,,,10,4,14
+,,38,SIATO,1S MUNIQUE,P,P,P,FR,FR,,,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,,2,0,2
+,,39,,1S BEATRIZ,TWR,P,P,FR,FR,,,P,TWR,TWR,P,P,,,TWR,P,EA,P,P,,,TWR,P,EA,PA,,,,EA,,,10,4,14
+,,40,,2S GABRIELE,HO,P,HO,FR,FR,,,PA,PA,HO,HO,P,,,HO,HO,EA,P,P,,,D,D,D,D,D,D,D,D,D,,6,0,6
+,,41,ASSIPACEA,1S ÉRICA,P,PA,PA,FR,FR,,,PA,PA,PA,PA,P,,,PA,PA,EA,PA,P,,,PA,PA,EA,PA,P,,,PA,PA,,17,0,17
+,,42,,1S CARLOS,TWR,P,P,FR,FR,,,TWR,P,TWR,P,P,,,F,F,F,F,F,,,F,F,F,F,F,,,F,,,5,2,7
+,,43,,1S KELLY BATALHA,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,LPM,,0,0,0
+,,44,,1S CAROLINE RUSSELL,P,P,P,FR,FR,,,P,P,P,INS,INS,,,INS,INS,INS,INS,INS,,,P,P,EA,PB,P,,,EA,,,9,0,9
+,,45,AVSEC,1S FRANCONERE,P,P,TWR,FR,FR,,,TWR,P,P,P,P,,,P,P,TWR,HO,P,,,P,TWR,EA,PA,,,,EA,TWR,,10,5,15
+,,,,Presentes,29,30,28,0,0,,,28,27,21,24,24,,,23,23,0,26,23,,,22,22,0,22,8,,,1,4,,18,,
+,,,,Férias,3,3,3,0,0,,,3,3,3,3,3,,,4,4,4,3,3,,,3,3,4,4,4,,,4,3,,3,,
+,,,,Dispensa (DM/INS/LPM),5,5,7,3,3,,,6,5,10,7,11,,,6,5,4,6,7,,,12,7,5,9,9,,,6,5,,7,,
+,,,,Escala Opr/Risaer,4,1,2,0,1,,,4,5,4,2,2,,,4,3,5,2,2,,,4,4,3,4,1,,,0,3,,3,,
+,,,,Curso ou Missão,2,4,3,2,2,,,2,3,4,6,3,,,4,4,4,4,4,,,1,5,0,0,0,,,4,4,,3,,
+,,,,Dispensa Parcial,0,0,0,0,0,,,1,1,1,0,0,,,0,0,0,0,0,,,0,0,0,0,0,,,0,0,,0,,
+,,,,,43,43,43,5,6,,,44,44,43,42,43,,,41,39,17,41,39,,,42,41,12,39,22,,,15,19,,34,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,TWR,SO NUNES,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S RAFAEL CIPRIANO,F,F,F,F,F,F,F,F,F,F,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S JONATHAN,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S THAIS HERZOG,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S DIANE,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S CAROLINE DUARTE,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S CARLOS,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S ESTEVES,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S BRUNO HENRIQUE,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S LETÍCIA,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S SAMPAIO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S MARCELA,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S JESSICA ANJOS,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S MEDEIROS,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S FARIAS,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S THAMIRES SOUZA,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,3S LILLIAN,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,3S LUCAS ROBERTO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,3S MICHAEL,O,O,O,O,O,,,O,O,O,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,F,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,AIS,SO LEITE,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,SO LUCIANY,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S MICHELE,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S MARCOS PAULO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S ALCINO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S KESSYA,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S BRUNA RIBEIRO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S MÁRCIO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,INÊS SAMPAIO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,EMS,SO FONTENELES,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,SO MICHELLI RIBEIRO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,1S EDUARDO,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S MILAINE,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,2S GABRIELE,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,3S NATÁLIA SANTOS,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,O,O,O,,,O,O,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,Férias,1,1,1,1,1,,,1,1,1,1,1,,,1,1,1,1,1,,,1,1,1,1,1,,,1,1,,,,
+,,,,Dispensa (DM/INS/LP/LM),0,0,0,0,0,,,0,0,0,0,0,,,0,0,0,0,0,,,0,0,0,0,0,,,0,0,,,,
+,,,,Curso ou Missão,0,0,0,0,0,,,0,0,0,0,0,,,0,0,0,0,0,,,0,0,0,0,0,,,0,0,,,,
