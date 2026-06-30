@@ -388,9 +388,9 @@ try {
 
         <!-- Abas -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('tab-efetivo')">Efetivo Militar</button>
-            <button class="tab-btn" onclick="switchTab('tab-secoes')">Gerenciar Seções</button>
-            <button class="tab-btn" onclick="switchTab('tab-usuarios')">Usuários & Acessos</button>
+            <button class="tab-btn active" onclick="switchTab(this, 'tab-efetivo')">Efetivo Militar</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-secoes')">Gerenciar Seções</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-usuarios')">Usuários & Acessos</button>
         </div>
 
         <!-- CONTEÚDO 1: EFETIVO MILITAR -->
@@ -657,11 +657,11 @@ try {
 
     <script>
         // Alternador de Abas
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        function switchTab(btn, tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-            event.target.classList.add('active');
+            btn.classList.add('active');
             document.getElementById(tabId).classList.add('active');
         }
 
