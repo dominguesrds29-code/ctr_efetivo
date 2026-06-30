@@ -58,7 +58,7 @@ try {
 
     // 4. Militares Afastados / Condições Especiais Hoje
     $stmtAfastados = $db->prepare("
-        SELECT m.nome, m.secao, p.status
+        SELECT m.nome, m.posto_grad, m.nome_guerra, m.secao, p.status
         FROM militares m
         JOIN presencas p ON m.id = p.militar_id
         WHERE p.data = ? AND p.status NOT IN ('P', 'EA', 'HO', 'O')
@@ -229,7 +229,7 @@ try {
                             <?php else: ?>
                                 <?php foreach ($listaAfastados as $la): ?>
                                     <tr>
-                                        <td><strong><?= $la['nome'] ?></strong></td>
+                                        <td><strong><?= formatarNomeMilitar($la) ?></strong></td>
                                         <td><?= $la['secao'] ?></td>
                                         <td>
                                             <span class="status-badge <?= strtolower($la['status']) ?>">

@@ -134,7 +134,7 @@ $errorMsg = sanitize($_GET['error'] ?? '');
                     <select id="periodMilitar" class="status-select" style="max-width: 100%; border-color: var(--border);" required>
                         <option value="">-- Selecione o Militar --</option>
                         <?php foreach ($militares as $membro): ?>
-                            <option value="<?= $membro['id'] ?>"><?= $membro['nome'] ?> (<?= $membro['secao'] ?>)</option>
+                            <option value="<?= $membro['id'] ?>"><?= formatarNomeMilitar($membro) ?> (<?= $membro['secao'] ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -184,7 +184,7 @@ $errorMsg = sanitize($_GET['error'] ?? '');
                             ?>
                                 <tr>
                                     <td><?= $index + 1 ?></td>
-                                    <td><strong><?= $membro['nome'] ?></strong></td>
+                                    <td><strong><?= formatarNomeMilitar($membro) ?></strong></td>
                                     <td>
                                         <select class="status-select" data-militar-id="<?= $membro['id'] ?>">
                                             <option value="" <?= $status === '' ? 'selected' : '' ?>>-- Selecionar --</option>

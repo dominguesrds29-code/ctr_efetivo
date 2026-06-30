@@ -69,3 +69,11 @@ $statusList = [
 function sanitize($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
+
+function formatarNomeMilitar($m) {
+    $posto = (!empty($m['posto_grad']) && $m['posto_grad'] !== 'MILITAR') ? $m['posto_grad'] . ' ' : '';
+    $nomeStr = (!empty($m['nome_guerra']) && trim($m['nome_guerra']) !== '-' && trim($m['nome_guerra']) !== '') 
+               ? $m['nome_guerra'] 
+               : $m['nome'];
+    return trim($posto . $nomeStr);
+}

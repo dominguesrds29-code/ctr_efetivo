@@ -418,12 +418,12 @@ try {
                             <tbody>
                                 <?php foreach ($militares as $m): ?>
                                     <tr>
-                                        <td><strong><?= $m['nome'] ?></strong></td>
+                                        <td><strong><?= formatarNomeMilitar($m) ?></strong></td>
                                         <td><?= $m['secao'] ?></td>
                                         <td><?= $m['escala'] == 1 ? 'Operacional' : 'Expediente' ?></td>
                                         <td>
                                             <div class="action-btn-group">
-                                                <button class="btn-action-small btn-edit" onclick="editMilitar(<?= $m['id'] ?>, '<?= addslashes($m['nome']) ?>', '<?= addslashes($m['secao']) ?>', <?= $m['escala'] ?>)">Definir Seção/Escala</button>
+                                                <button class="btn-action-small btn-edit" onclick="editMilitar(<?= $m['id'] ?>, '<?= addslashes(formatarNomeMilitar($m)) ?>', '<?= addslashes($m['secao']) ?>', <?= $m['escala'] ?>)">Definir Seção/Escala</button>
                                             </div>
                                         </td>
                                     </tr>
