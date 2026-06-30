@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             $db->beginTransaction();
-            $stmt = $db->prepare("INSERT OR REPLACE INTO presencas (militar_id, data, status) VALUES (?, ?, ?)");
+            $stmt = $db->prepare("REPLACE INTO presencas (militar_id, data, status) VALUES (?, ?, ?)");
             
             foreach ($presenceData as $militarId => $status) {
                 $status = sanitize($status);
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $period = new DatePeriod($start, $interval, $end);
 
             $db->beginTransaction();
-            $stmt = $db->prepare("INSERT OR REPLACE INTO presencas (militar_id, data, status) VALUES (?, ?, ?)");
+            $stmt = $db->prepare("REPLACE INTO presencas (militar_id, data, status) VALUES (?, ?, ?)");
             
             foreach ($period as $dt) {
                 $formattedDate = $dt->format("Y-m-d");

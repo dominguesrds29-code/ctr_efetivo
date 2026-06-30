@@ -8,3 +8,7 @@ Desktop.ini
 .DS_Store
 *.tmp
 *.log
+
+# Arquivos de credenciais locais
+public/.env
+

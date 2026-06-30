@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmtCheckSec->fetchColumn() == 0) {
                     $errorMsg = "A seção selecionada é inválida.";
                 } else {
-                    $stmt = $db->prepare("INSERT INTO militares (nome, secao, escala) VALUES (?, ?, ?)");
+                    $stmt = $db->prepare("INSERT INTO militares (nome, secao, escala, posto_grad) VALUES (?, ?, ?, 'MILITAR')");
                     $stmt->execute([$nome, $secao, $escala]);
                     $successMsg = "Militar '$nome' cadastrado com sucesso!";
                 }
