@@ -14,37 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = sanitize($_POST['action'] ?? '');
 
     // --- MILITARES CRUD ---
-    if ($action === 'add_militar') {
-        $nome = sanitize($_POST['nome'] ?? '');
-        $secao = sanitize($_POST['secao'] ?? '');
-        $escala = (int)($_POST['escala'] ?? 0);
-
-        if (!empty($nome) && !empty($secao)) {
-            try {
-                // Validar se a seção existe no banco
-                $stmtCheckSec = $db->prepare("SELECT COUNT(*) FROM secoes WHERE nome = ?");
-                $stmtCheckSec->execute([$secao]);
-                if ($stmtCheckSec->fetchColumn() == 0) {
-                    $errorMsg = "A seção selecionada é inválida.";
-                } else {
-                    $stmt = $db->prepare("INSERT INTO militares (nome, secao, escala, posto_grad) VALUES (?, ?, ?, 'MILITAR')");
-                    $stmt->execute([$nome, $secao, $escala]);
-                    $successMsg = "Militar '$nome' cadastrado com sucesso!";
-                }
-            } catch (PDOException $e) {
-                $errorMsg = "Erro ao cadastrar militar: " . $e->getMessage();
-            }
-        } else {
-            $errorMsg = "Preencha todos os campos obrigatórios do militar.";
-        }
-    } 
-    elseif ($action === 'edit_militar') {
+    if ($action === 'edit_militar') {
         $id = (int)($_POST['id'] ?? 0);
-        $nome = sanitize($_POST['nome'] ?? '');
         $secao = sanitize($_POST['secao'] ?? '');
         $escala = (int)($_POST['escala'] ?? 0);
 
-        if ($id > 0 && !empty($nome) && !empty($secao)) {
+        if ($id > 0 && !empty($secao)) {
             try {
                 // Validar se a seção existe no banco
                 $stmtCheckSec = $db->prepare("SELECT COUNT(*) FROM secoes WHERE nome = ?");
@@ -52,35 +27,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmtCheckSec->fetchColumn() == 0) {
                     $errorMsg = "A seção selecionada é inválida.";
                 } else {
-                    $stmt = $db->prepare("UPDATE militares SET nome = ?, secao = ?, escala = ? WHERE id = ?");
-                    $stmt->execute([$nome, $secao, $escala, $id]);
-                    $successMsg = "Militar '$nome' atualizado com sucesso!";
+                    $stmt = $db->prepare("UPDATE militares SET secao = ?, escala = ? WHERE id = ?");
+                    $stmt->execute([$secao, $escala, $id]);
+                    $successMsg = "Dados do militar atualizados com sucesso!";
                 }
             } catch (PDOException $e) {
                 $errorMsg = "Erro ao atualizar militar: " . $e->getMessage();
             }
         } else {
             $errorMsg = "Dados inválidos para edição do militar.";
-        }
-    } 
-    elseif ($action === 'delete_militar') {
-        $id = (int)($_POST['id'] ?? 0);
-        if ($id > 0) {
-            try {
-                $db->beginTransaction();
-                // Deletar registros de presença associados primeiro
-                $stmtPres = $db->prepare("DELETE FROM presencas WHERE militar_id = ?");
-                $stmtPres->execute([$id]);
-
-                $stmtMil = $db->prepare("DELETE FROM militares WHERE id = ?");
-                $stmtMil->execute([$id]);
-
-                $db->commit();
-                $successMsg = "Militar excluído com sucesso!";
-            } catch (PDOException $e) {
-                if ($db->inTransaction()) $db->rollBack();
-                $errorMsg = "Erro ao excluir militar: " . $e->getMessage();
-            }
         }
     }
 
@@ -410,15 +365,15 @@ try {
         <div id="tab-efetivo" class="tab-content active">
             <div class="admin-flex">
                 <!-- Coluna Esquerda: Cadastro e Edição -->
-                <div class="legend-box" style="height: fit-content;">
-                    <h3 id="formMilitarTitle">Cadastrar Novo Militar</h3>
+                <div class="legend-box" id="boxMilitar" style="height: fit-content; display: none;">
+                    <h3 id="formMilitarTitle">Editar Seção/Escala</h3>
                     <form action="admin.php" method="POST" id="formMilitar" style="margin-top: 15px;">
-                        <input type="hidden" name="action" id="militarAction" value="add_militar">
+                        <input type="hidden" name="action" id="militarAction" value="edit_militar">
                         <input type="hidden" name="id" id="militarId" value="">
 
                         <div class="form-group">
-                            <label for="mNome">Nome Completo</label>
-                            <input type="text" name="nome" id="mNome" class="form-input" placeholder="Ex: S1 BORBONHA" required autocomplete="off">
+                            <label for="mNome">Nome do Militar (Gerenciado pelo SGP)</label>
+                            <input type="text" name="nome" id="mNome" class="form-input" readonly style="background-color: var(--border);">
                         </div>
 
                         <div class="form-group">
@@ -439,8 +394,8 @@ try {
                             </select>
                         </div>
 
-                        <button type="submit" class="btn-primary" id="btnSubmitMilitar">Cadastrar Militar</button>
-                        <button type="button" class="btn-logout" id="btnCancelEditMilitar" style="display: none; width: 100%; margin-top: 10px; color: var(--text)">Cancelar Edição</button>
+                        <button type="submit" class="btn-primary" id="btnSubmitMilitar">Gravar Alterações</button>
+                        <button type="button" class="btn-logout" id="btnCancelEditMilitar" style="width: 100%; margin-top: 10px; color: var(--text)">Cancelar Edição</button>
                     </form>
                 </div>
 
@@ -468,12 +423,7 @@ try {
                                         <td><?= $m['escala'] == 1 ? 'Operacional' : 'Expediente' ?></td>
                                         <td>
                                             <div class="action-btn-group">
-                                                <button class="btn-action-small btn-edit" onclick="editMilitar(<?= $m['id'] ?>, '<?= addslashes($m['nome']) ?>', '<?= addslashes($m['secao']) ?>', <?= $m['escala'] ?>)">Editar</button>
-                                                <form action="admin.php" method="POST" onsubmit="return confirm('Deseja realmente excluir este militar? Todos os registros de presença dele serão apagados.');" style="display: inline;">
-                                                    <input type="hidden" name="action" value="delete_militar">
-                                                    <input type="hidden" name="id" value="<?= $m['id'] ?>">
-                                                    <button type="submit" class="btn-action-small btn-delete">Excluir</button>
-                                                </form>
+                                                <button class="btn-action-small btn-edit" onclick="editMilitar(<?= $m['id'] ?>, '<?= addslashes($m['nome']) ?>', '<?= addslashes($m['secao']) ?>', <?= $m['escala'] ?>)">Definir Seção/Escala</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -681,28 +631,19 @@ try {
 
         // Funções do CRUD de Efetivo
         function editMilitar(id, nome, secao, escala) {
-            document.getElementById('militarAction').value = 'edit_militar';
+            document.getElementById('boxMilitar').style.display = 'block';
             document.getElementById('militarId').value = id;
             document.getElementById('mNome').value = nome;
             document.getElementById('mSecao').value = secao;
             document.getElementById('mEscala').value = escala;
             
-            document.getElementById('formMilitarTitle').innerText = 'Editar Militar';
-            document.getElementById('btnSubmitMilitar').innerText = 'Gravar Alterações';
-            document.getElementById('btnCancelEditMilitar').style.display = 'block';
-            
-            // Focar o campo nome
-            document.getElementById('mNome').focus();
+            document.getElementById('mSecao').focus();
         }
 
         document.getElementById('btnCancelEditMilitar').addEventListener('click', () => {
-            document.getElementById('militarAction').value = 'add_militar';
             document.getElementById('militarId').value = '';
             document.getElementById('formMilitar').reset();
-            
-            document.getElementById('formMilitarTitle').innerText = 'Cadastrar Novo Militar';
-            document.getElementById('btnSubmitMilitar').innerText = 'Cadastrar Militar';
-            document.getElementById('btnCancelEditMilitar').style.display = 'none';
+            document.getElementById('boxMilitar').style.display = 'none';
         });
 
         // Funções do CRUD de Seções
