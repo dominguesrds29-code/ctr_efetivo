@@ -1,7 +1,21 @@
 <?php
 require_once 'config.php';
 require_once 'auth.php';
-$user = requireLogin();
+
+// Iniciar sessao se ainda nao estiver ativa para checar se o usuario esta logado
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$user = null;
+if (isset($_SESSION['user_id'])) {
+    $user = [
+        'id' => $_SESSION['user_id'],
+        'usuario' => $_SESSION['user_usuario'],
+        'nome' => $_SESSION['user_nome'],
+        'perfil' => $_SESSION['user_perfil']
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -100,20 +114,24 @@ $user = requireLogin();
             </div>
         </div>
         <nav class="nav-menu">
-            <a href="index.php" class="nav-link">Lançar Chamada</a>
-            <?php if ($user['perfil'] === 'chefia' || $user['perfil'] === 'admin'): ?>
-                <a href="dashboard.php" class="nav-link">Painel da Chefia</a>
+            <?php if ($user): ?>
+                <a href="index.php" class="nav-link">Lançar Chamada</a>
+                <?php if ($user['perfil'] === 'chefia' || $user['perfil'] === 'admin'): ?>
+                    <a href="dashboard.php" class="nav-link">Painel da Chefia</a>
+                <?php endif; ?>
+                <?php if ($user['perfil'] === 'admin'): ?>
+                    <a href="admin.php" class="nav-link">Administração</a>
+                <?php endif; ?>
+                <a href="help.php" class="nav-link active">Ajuda</a>
+                
+                <div class="nav-user">
+                    <span>Olá, <strong><?= $user['nome'] ?></strong></span>
+                    <span class="badge-profile"><?= $user['perfil'] ?></span>
+                </div>
+                <a href="logout.php" class="btn-logout">Sair</a>
+            <?php else: ?>
+                <a href="login.php" class="btn-logout" style="background-color: var(--primary); color: white; display: inline-flex; align-items: center; justify-content: center;">Acessar o Sistema</a>
             <?php endif; ?>
-            <?php if ($user['perfil'] === 'admin'): ?>
-                <a href="admin.php" class="nav-link">Administração</a>
-            <?php endif; ?>
-            <a href="help.php" class="nav-link active">Ajuda</a>
-            
-            <div class="nav-user">
-                <span>Olá, <strong><?= $user['nome'] ?></strong></span>
-                <span class="badge-profile"><?= $user['perfil'] ?></span>
-            </div>
-            <a href="logout.php" class="btn-logout">Sair</a>
         </nav>
     </header>
 
