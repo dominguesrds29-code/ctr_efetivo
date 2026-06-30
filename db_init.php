@@ -18,6 +18,12 @@ try {
     $db->exec("DROP TABLE IF EXISTS presencas");
     $db->exec("DROP TABLE IF EXISTS militares");
     $db->exec("DROP TABLE IF EXISTS usuarios");
+    $db->exec("DROP TABLE IF EXISTS secoes");
+
+    $db->exec("CREATE TABLE secoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT UNIQUE NOT NULL
+    )");
 
     $db->exec("CREATE TABLE usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,6 +87,7 @@ try {
     $lineCount = 0;
     $db->beginTransaction();
 
+    $stmtSecao = $db->prepare("INSERT OR IGNORE INTO secoes (nome) VALUES (?)");
     $stmtMilitar = $db->prepare("INSERT INTO militares (nome, secao, escala) VALUES (?, ?, ?)");
     $stmtPresenca = $db->prepare("INSERT OR REPLACE INTO presencas (militar_id, data, status) VALUES (?, ?, ?)");
 
@@ -113,6 +120,7 @@ try {
         // Atualizar seção se houver uma nova informada
         if ($section !== '') {
             $currentSection = $section;
+            $stmtSecao->execute([$currentSection]);
             // Se for TWR, AIS ou EMS, força escala operacional
             if (in_array($currentSection, ['TWR', 'AIS', 'EMS'])) {
                 $isOperational = 1;

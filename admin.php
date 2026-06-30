@@ -21,9 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!empty($nome) && !empty($secao)) {
             try {
-                $stmt = $db->prepare("INSERT INTO militares (nome, secao, escala) VALUES (?, ?, ?)");
-                $stmt->execute([$nome, $secao, $escala]);
-                $successMsg = "Militar '$nome' cadastrado com sucesso!";
+                // Validar se a seção existe no banco
+                $stmtCheckSec = $db->prepare("SELECT COUNT(*) FROM secoes WHERE nome = ?");
+                $stmtCheckSec->execute([$secao]);
+                if ($stmtCheckSec->fetchColumn() == 0) {
+                    $errorMsg = "A seção selecionada é inválida.";
+                } else {
+                    $stmt = $db->prepare("INSERT INTO militares (nome, secao, escala) VALUES (?, ?, ?)");
+                    $stmt->execute([$nome, $secao, $escala]);
+                    $successMsg = "Militar '$nome' cadastrado com sucesso!";
+                }
             } catch (PDOException $e) {
                 $errorMsg = "Erro ao cadastrar militar: " . $e->getMessage();
             }
@@ -39,9 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($id > 0 && !empty($nome) && !empty($secao)) {
             try {
-                $stmt = $db->prepare("UPDATE militares SET nome = ?, secao = ?, escala = ? WHERE id = ?");
-                $stmt->execute([$nome, $secao, $escala, $id]);
-                $successMsg = "Militar '$nome' atualizado com sucesso!";
+                // Validar se a seção existe no banco
+                $stmtCheckSec = $db->prepare("SELECT COUNT(*) FROM secoes WHERE nome = ?");
+                $stmtCheckSec->execute([$secao]);
+                if ($stmtCheckSec->fetchColumn() == 0) {
+                    $errorMsg = "A seção selecionada é inválida.";
+                } else {
+                    $stmt = $db->prepare("UPDATE militares SET nome = ?, secao = ?, escala = ? WHERE id = ?");
+                    $stmt->execute([$nome, $secao, $escala, $id]);
+                    $successMsg = "Militar '$nome' atualizado com sucesso!";
+                }
             } catch (PDOException $e) {
                 $errorMsg = "Erro ao atualizar militar: " . $e->getMessage();
             }
@@ -82,12 +96,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!empty($usuario) && !empty($senha) && !empty($nome)) {
             try {
+                // Validar seção se for encarregado limitado
+                if ($perfil === 'encarregado' && $secao !== null) {
+                    $stmtCheckSec = $db->prepare("SELECT COUNT(*) FROM secoes WHERE nome = ?");
+                    $stmtCheckSec->execute([$secao]);
+                    if ($stmtCheckSec->fetchColumn() == 0) {
+                        throw new Exception("A seção selecionada é inválida.");
+                    }
+                }
                 $hash = password_hash($senha, PASSWORD_DEFAULT);
                 $stmt = $db->prepare("INSERT INTO usuarios (usuario, senha_hash, nome, perfil, secao) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$usuario, $hash, $nome, $perfil, $secao]);
                 $successMsg = "Usuário '$usuario' criado com sucesso!";
-            } catch (PDOException $e) {
-                $errorMsg = "Erro ao criar usuário (provavelmente o nome de usuário já existe): " . $e->getMessage();
+            } catch (Exception $e) {
+                $errorMsg = "Erro ao criar usuário: " . $e->getMessage();
             }
         } else {
             $errorMsg = "Preencha todos os campos obrigatórios do usuário.";
@@ -104,10 +126,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($id > 0 && !empty($usuario) && !empty($nome)) {
             try {
+                // Validar seção se for encarregado limitado
+                if ($perfil === 'encarregado' && $secao !== null) {
+                    $stmtCheckSec = $db->prepare("SELECT COUNT(*) FROM secoes WHERE nome = ?");
+                    $stmtCheckSec->execute([$secao]);
+                    if ($stmtCheckSec->fetchColumn() == 0) {
+                        throw new Exception("A seção selecionada é inválida.");
+                    }
+                }
                 $stmt = $db->prepare("UPDATE usuarios SET usuario = ?, nome = ?, perfil = ?, secao = ? WHERE id = ?");
                 $stmt->execute([$usuario, $nome, $perfil, $secao, $id]);
                 $successMsg = "Dados do usuário '$usuario' atualizados!";
-            } catch (PDOException $e) {
+            } catch (Exception $e) {
                 $errorMsg = "Erro ao atualizar usuário: " . $e->getMessage();
             }
         }
@@ -143,16 +173,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+
+    // --- SEÇÕES CRUD ---
+    elseif ($action === 'add_secao') {
+        $nome = strtoupper(sanitize($_POST['nome'] ?? ''));
+        if (!empty($nome)) {
+            try {
+                $stmt = $db->prepare("INSERT INTO secoes (nome) VALUES (?)");
+                $stmt->execute([$nome]);
+                $successMsg = "Seção '$nome' cadastrada com sucesso!";
+            } catch (PDOException $e) {
+                $errorMsg = "Erro ao cadastrar seção (provavelmente já existe): " . $e->getMessage();
+            }
+        } else {
+            $errorMsg = "O nome da seção não pode ser vazio.";
+        }
+    }
+    elseif ($action === 'edit_secao') {
+        $id = (int)($_POST['id'] ?? 0);
+        $nome = strtoupper(sanitize($_POST['nome'] ?? ''));
+
+        if ($id > 0 && !empty($nome)) {
+            try {
+                $db->beginTransaction();
+                // Pegar o nome antigo da seção
+                $stmtOld = $db->prepare("SELECT nome FROM secoes WHERE id = ?");
+                $stmtOld->execute([$id]);
+                $oldName = $stmtOld->fetchColumn();
+
+                if ($oldName) {
+                    // Atualizar tabela de seções
+                    $stmtUpdateSec = $db->prepare("UPDATE secoes SET nome = ? WHERE id = ?");
+                    $stmtUpdateSec->execute([$nome, $id]);
+
+                    // Atualizar militares vinculados
+                    $stmtUpdateMil = $db->prepare("UPDATE militares SET secao = ? WHERE secao = ?");
+                    $stmtUpdateMil->execute([$nome, $oldName]);
+
+                    // Atualizar usuários vinculados
+                    $stmtUpdateUsr = $db->prepare("UPDATE usuarios SET secao = ? WHERE secao = ?");
+                    $stmtUpdateUsr->execute([$nome, $oldName]);
+
+                    $db->commit();
+                    $successMsg = "Seção renomeada de '$oldName' para '$nome' com sucesso!";
+                } else {
+                    $db->rollBack();
+                    $errorMsg = "Seção não encontrada.";
+                }
+            } catch (PDOException $e) {
+                if ($db->inTransaction()) $db->rollBack();
+                $errorMsg = "Erro ao editar seção: " . $e->getMessage();
+            }
+        }
+    }
+    elseif ($action === 'delete_secao') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            try {
+                $stmtOld = $db->prepare("SELECT nome FROM secoes WHERE id = ?");
+                $stmtOld->execute([$id]);
+                $secName = $stmtOld->fetchColumn();
+
+                if ($secName) {
+                    // Verificar militares vinculados
+                    $stmtCount = $db->prepare("SELECT COUNT(*) FROM militares WHERE secao = ?");
+                    $stmtCount->execute([$secName]);
+                    $countMil = $stmtCount->fetchColumn();
+
+                    if ($countMil > 0) {
+                        $errorMsg = "Não é possível excluir a seção '$secName' porque ela possui $countMil militares vinculados.";
+                    } else {
+                        $stmtDel = $db->prepare("DELETE FROM secoes WHERE id = ?");
+                        $stmtDel->execute([$id]);
+                        $successMsg = "Seção excluída com sucesso!";
+                    }
+                }
+            } catch (PDOException $e) {
+                $errorMsg = "Erro ao excluir seção: " . $e->getMessage();
+            }
+        }
+    }
 }
 
 // Carregar listas para exibição
 try {
     $militares = $db->query("SELECT * FROM militares ORDER BY secao ASC, nome ASC")->fetchAll();
     $usuarios = $db->query("SELECT * FROM usuarios ORDER BY perfil ASC, usuario ASC")->fetchAll();
-
-    // Obter lista única de seções existentes para popular os select options
-    $stmtSecoes = $db->query("SELECT DISTINCT secao FROM militares ORDER BY secao ASC");
-    $listSecoes = $stmtSecoes->fetchAll(PDO::FETCH_COLUMN);
+    $secoesList = $db->query("SELECT * FROM secoes ORDER BY nome ASC")->fetchAll();
 } catch (PDOException $e) {
     die("Erro ao ler dados: " . $e->getMessage());
 }
@@ -282,6 +389,7 @@ try {
         <!-- Abas -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('tab-efetivo')">Efetivo Militar</button>
+            <button class="tab-btn" onclick="switchTab('tab-secoes')">Gerenciar Seções</button>
             <button class="tab-btn" onclick="switchTab('tab-usuarios')">Usuários & Acessos</button>
         </div>
 
@@ -302,12 +410,12 @@ try {
 
                         <div class="form-group">
                             <label for="mSecao">Seção</label>
-                            <input type="text" name="secao" id="mSecao" class="form-input" placeholder="Ex: SSTI, TWR, SELM" required autocomplete="off" list="secoesList">
-                            <datalist id="secoesList">
-                                <?php foreach ($listSecoes as $sec): ?>
-                                    <option value="<?= $sec ?>">
+                            <select name="secao" id="mSecao" class="form-input" style="padding: 10px;" required>
+                                <option value="">-- Selecione a Seção --</option>
+                                <?php foreach ($secoesList as $sec): ?>
+                                    <option value="<?= $sec['nome'] ?>"><?= $sec['nome'] ?></option>
                                 <?php endforeach; ?>
-                            </datalist>
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -361,10 +469,68 @@ try {
                         </table>
                     </div>
                 </div>
+        </div>
+
+        <!-- CONTEÚDO 2: GERENCIAR SEÇÕES -->
+        <div id="tab-secoes" class="tab-content">
+            <div class="admin-flex">
+                <!-- Coluna Esquerda: Cadastro e Edição -->
+                <div class="legend-box" style="height: fit-content;">
+                    <h3 id="formSecaoTitle">Cadastrar Nova Seção</h3>
+                    <form action="admin.php" method="POST" id="formSecao" style="margin-top: 15px;">
+                        <input type="hidden" name="action" id="secaoAction" value="add_secao">
+                        <input type="hidden" name="id" id="secaoId" value="">
+
+                        <div class="form-group">
+                            <label for="sNome">Nome da Seção</label>
+                            <input type="text" name="nome" id="sNome" class="form-input" placeholder="Ex: SSTI" required autocomplete="off" style="text-transform: uppercase;">
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="btnSubmitSecao">Cadastrar Seção</button>
+                        <button type="button" class="btn-logout" id="btnCancelEditSecao" style="display: none; width: 100%; margin-top: 10px; color: var(--text)">Cancelar Edição</button>
+                    </form>
+                </div>
+
+                <!-- Coluna Direita: Listagem -->
+                <div class="section-card" style="margin-bottom: 0;">
+                    <div class="section-title">
+                        <span>Seções Cadastradas</span>
+                        <span class="section-badge"><?= count($secoesList) ?> Seções</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="efetivo-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">ID</th>
+                                    <th>Nome da Seção</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($secoesList as $sec): ?>
+                                    <tr>
+                                        <td><?= $sec['id'] ?></td>
+                                        <td><strong><?= $sec['nome'] ?></strong></td>
+                                        <td>
+                                            <div class="action-btn-group">
+                                                <button class="btn-action-small btn-edit" onclick="editSecao(<?= $sec['id'] ?>, '<?= addslashes($sec['nome']) ?>')">Editar</button>
+                                                <form action="admin.php" method="POST" onsubmit="return confirm('Deseja realmente excluir esta seção? Apenas seções vazias podem ser apagadas.');" style="display: inline;">
+                                                    <input type="hidden" name="action" value="delete_secao">
+                                                    <input type="hidden" name="id" value="<?= $sec['id'] ?>">
+                                                    <button type="submit" class="btn-action-small btn-delete">Excluir</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- CONTEÚDO 2: USUÁRIOS E ACESSOS -->
+        <!-- CONTEÚDO 3: USUÁRIOS E ACESSOS -->
         <div id="tab-usuarios" class="tab-content">
             <div class="admin-flex">
                 <!-- Coluna Esquerda: Cadastro de Usuário e Alteração de Senha -->
@@ -402,7 +568,12 @@ try {
 
                             <div class="form-group" id="secaoVinculadaGroup">
                                 <label for="uSecao">Seção Vinculada (Exclusivo para Encarregados)</label>
-                                <input type="text" name="secao" id="uSecao" class="form-input" placeholder="Ex: TWR, SELM (Deixe em branco para acesso geral)" autocomplete="off" list="secoesList">
+                                <select name="secao" id="uSecao" class="form-input" style="padding: 10px;">
+                                    <option value="">-- Acesso Geral (Todas) --</option>
+                                    <?php foreach ($secoesList as $sec): ?>
+                                        <option value="<?= $sec['nome'] ?>"><?= $sec['nome'] ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
 
                             <button type="submit" class="btn-primary" id="btnSubmitUser">Criar Usuário</button>
@@ -518,6 +689,29 @@ try {
             document.getElementById('formMilitarTitle').innerText = 'Cadastrar Novo Militar';
             document.getElementById('btnSubmitMilitar').innerText = 'Cadastrar Militar';
             document.getElementById('btnCancelEditMilitar').style.display = 'none';
+        });
+
+        // Funções do CRUD de Seções
+        function editSecao(id, nome) {
+            document.getElementById('secaoAction').value = 'edit_secao';
+            document.getElementById('secaoId').value = id;
+            document.getElementById('sNome').value = nome;
+            
+            document.getElementById('formSecaoTitle').innerText = 'Editar Seção';
+            document.getElementById('btnSubmitSecao').innerText = 'Gravar Alterações';
+            document.getElementById('btnCancelEditSecao').style.display = 'block';
+            
+            document.getElementById('sNome').focus();
+        }
+
+        document.getElementById('btnCancelEditSecao').addEventListener('click', () => {
+            document.getElementById('secaoAction').value = 'add_secao';
+            document.getElementById('secaoId').value = '';
+            document.getElementById('formSecao').reset();
+            
+            document.getElementById('formSecaoTitle').innerText = 'Cadastrar Nova Seção';
+            document.getElementById('btnSubmitSecao').innerText = 'Cadastrar Seção';
+            document.getElementById('btnCancelEditSecao').style.display = 'none';
         });
 
         // Funções do CRUD de Usuários
