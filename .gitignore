@@ -1,6 +1,6 @@
 # .gitignore
 # Ignorar banco de dados local SQLite
-database.sqlite
+public/database.sqlite
 
 # XAMPP / Arquivos temporários do OS
 Thumbs.db
