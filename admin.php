@@ -469,6 +469,7 @@ try {
                         </table>
                     </div>
                 </div>
+            </div>
         </div>
 
         <!-- CONTEÚDO 2: GERENCIAR SEÇÕES -->
