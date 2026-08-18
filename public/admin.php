@@ -21,8 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($id > 0 && !empty($secao)) {
             try {
-                $stmt = $db->prepare("UPDATE militares SET secao = ?, escala = ? WHERE id = ?");
-                $stmt->execute([$secao, $escala, $id]);
+                $stmt = $db->prepare("UPDATE militares SET secao = ? WHERE id = ?");
+                $stmt->execute([$secao, $id]);
+                
+                $stmtEscala = $db->prepare("REPLACE INTO ctr_escalas (militar_id, escala) VALUES (?, ?)");
+                $stmtEscala->execute([$id, $escala]);
+                
                 $successMsg = "Dados do militar atualizados com sucesso!";
             } catch (PDOException $e) {
                 $errorMsg = "Erro ao atualizar militar: " . $e->getMessage();
@@ -111,7 +115,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Carregar listas para exibição
 try {
-    $militares = $db->query("SELECT * FROM militares ORDER BY secao ASC, nome ASC")->fetchAll();
+    $militares = $db->query("
+        SELECT m.*, COALESCE(e.escala, 0) as escala 
+        FROM militares m 
+        LEFT JOIN ctr_escalas e ON m.id = e.militar_id 
+        ORDER BY m.secao ASC, m.nome ASC
+    ")->fetchAll();
     $usuarios = $db->query("SELECT * FROM usuarios ORDER BY perfil ASC, usuario ASC")->fetchAll();
     $secoesList = $db->query("SELECT DISTINCT secao as nome FROM militares WHERE TRIM(secao) != '' UNION SELECT DISTINCT secao as nome FROM usuarios WHERE TRIM(secao) != '' ORDER BY nome ASC")->fetchAll();
 } catch (PDOException $e) {

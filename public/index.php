@@ -12,19 +12,21 @@ $selectedDate = sanitize($_GET['date'] ?? date('Y-m-d'));
 try {
     if (!empty($user['secao'])) {
         $stmt = $db->prepare("
-            SELECT m.*, p.status 
+            SELECT m.*, COALESCE(e.escala, 0) as escala, p.status 
             FROM militares m 
+            LEFT JOIN ctr_escalas e ON m.id = e.militar_id
             LEFT JOIN presencas p ON m.id = p.militar_id AND p.data = ?
             WHERE m.secao = ?
-            ORDER BY m.escala ASC, m.secao ASC, m.id ASC
+            ORDER BY escala ASC, m.secao ASC, m.id ASC
         ");
         $stmt->execute([$selectedDate, $user['secao']]);
     } else {
         $stmt = $db->prepare("
-            SELECT m.*, p.status 
+            SELECT m.*, COALESCE(e.escala, 0) as escala, p.status 
             FROM militares m 
+            LEFT JOIN ctr_escalas e ON m.id = e.militar_id
             LEFT JOIN presencas p ON m.id = p.militar_id AND p.data = ?
-            ORDER BY m.escala ASC, m.secao ASC, m.id ASC
+            ORDER BY escala ASC, m.secao ASC, m.id ASC
         ");
         $stmt->execute([$selectedDate]);
     }

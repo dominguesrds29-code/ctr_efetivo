@@ -20,12 +20,12 @@ try {
         echo "Coluna 'secao' adicionada à tabela militares.\n";
     }
 
-    // Adiciona a coluna 'escala' se não existir
-    $colsEscala = $db->query("SHOW COLUMNS FROM militares LIKE 'escala'")->fetchAll();
-    if (empty($colsEscala)) {
-        $db->exec("ALTER TABLE militares ADD COLUMN escala TINYINT(1) DEFAULT 0 COMMENT '0: Expediente, 1: Operacional'");
-        echo "Coluna 'escala' adicionada à tabela militares.\n";
-    }
+    $db->exec("CREATE TABLE IF NOT EXISTS ctr_escalas (
+        militar_id INT PRIMARY KEY,
+        escala TINYINT(1) DEFAULT 0,
+        FOREIGN KEY(militar_id) REFERENCES militares(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    echo "Tabela 'ctr_escalas' verificada/criada.\n";
 
     // As seções agora são campos de texto livre, sem tabela de domínio separada.
 
@@ -83,9 +83,15 @@ try {
     $lineCount = 0;
     $db->beginTransaction();
 
-    $stmtCheckMilitar = $db->prepare("SELECT id FROM militares WHERE UPPER(TRIM(nome)) = ?");
-    $stmtUpdateMilitar = $db->prepare("UPDATE militares SET secao = ?, escala = ? WHERE id = ?");
-    $stmtInsertMilitar = $db->prepare("INSERT INTO militares (nome, secao, escala, posto_grad) VALUES (?, ?, ?, ?)");
+    $stmtCheckMilitar = $db->prepare("
+        SELECT id FROM militares 
+        WHERE UPPER(TRIM(nome)) = ? 
+        OR UPPER(CONCAT(TRIM(posto_grad), ' ', TRIM(nome_guerra))) = ?
+        OR UPPER(CONCAT(TRIM(posto_grad), ' ', TRIM(nome))) = ?
+    ");
+    $stmtUpdateMilitar = $db->prepare("UPDATE militares SET secao = ? WHERE id = ?");
+    $stmtInsertMilitar = $db->prepare("INSERT INTO militares (nome, nome_guerra, secao, posto_grad) VALUES (?, ?, ?, ?)");
+    $stmtUpdateEscala = $db->prepare("REPLACE INTO ctr_escalas (militar_id, escala) VALUES (?, ?)");
     $stmtPresenca = $db->prepare("REPLACE INTO presencas (militar_id, data, status) VALUES (?, ?, ?)");
 
     while (($row = fgetcsv($handle, 0, ",")) !== false) {
@@ -112,7 +118,6 @@ try {
 
         if ($section !== '') {
             $currentSection = $section;
-            $stmtSecao->execute([$currentSection]);
             if (in_array($currentSection, ['TWR', 'AIS', 'EMS'])) {
                 $isOperational = 1;
             } else {
@@ -127,18 +132,28 @@ try {
             $normalizedName = mb_strtoupper($name, 'UTF-8');
             
             // Verifica se o militar já existe no banco do SGP
-            $stmtCheckMilitar->execute([$normalizedName]);
+            $stmtCheckMilitar->execute([$normalizedName, $normalizedName, $normalizedName]);
             $existingMilitar = $stmtCheckMilitar->fetch();
 
             if ($existingMilitar) {
                 $militarId = $existingMilitar['id'];
-                // Apenas atualiza a seção e a escala na ficha dele
-                $stmtUpdateMilitar->execute([$currentSection, $isOperational, $militarId]);
+                // Apenas atualiza a seção na ficha dele
+                $stmtUpdateMilitar->execute([$currentSection, $militarId]);
             } else {
+                // Separar posto_grad e nome_guerra, se possível
+                $parts = explode(' ', $normalizedName, 2);
+                $postoGrad = 'MILITAR';
+                $nomeGuerra = $normalizedName;
+                if (count($parts) > 1 && in_array($parts[0], ['SO', '1S', '2S', '3S', 'CB', 'S1', 'S2'])) {
+                    $postoGrad = $parts[0];
+                    $nomeGuerra = $parts[1];
+                }
+
                 // Insere novo militar (adicionando posto_grad padrão obrigatório)
-                $stmtInsertMilitar->execute([$normalizedName, $currentSection, $isOperational, 'MILITAR']);
+                $stmtInsertMilitar->execute([$normalizedName, $nomeGuerra, $currentSection, $postoGrad]);
                 $militarId = $db->lastInsertId();
             }
+            $stmtUpdateEscala->execute([$militarId, $isOperational]);
 
             // Lançar históricos de presenças
             foreach ($dayColumns as $colIdx => $day) {
