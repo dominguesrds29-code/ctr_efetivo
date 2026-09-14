@@ -189,18 +189,116 @@ try {
             gap: 8px;
         }
         .btn-action-small {
-            padding: 6px 10px;
+            padding: 6px 12px;
             border: none;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         .btn-edit { background-color: var(--info); color: white; }
         .btn-delete { background-color: var(--danger); color: white; }
         .btn-pass { background-color: var(--warning); color: white; }
-        .btn-action-small:hover { opacity: 0.85; }
+        .btn-action-small:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* Badges de Seção e Escala */
+        .badge-secao {
+            display: inline-block;
+            padding: 4px 10px;
+            background-color: #EDF2F7;
+            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .badge-escala {
+            display: inline-block;
+            padding: 4px 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border-radius: 20px;
+        }
+        .badge-escala.escala-operacional {
+            background-color: #EBF8FF;
+            color: #2B6CB0;
+            border: 1px solid #BEE3F8;
+        }
+        .badge-escala.escala-expediente {
+            background-color: #F7FAFC;
+            color: #4A5568;
+            border: 1px solid #E2E8F0;
+        }
+
+        /* Modal de Edição de Militar */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 20, 50, 0.55);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+            animation: fadeInModal 0.2s ease-out;
+        }
+        @keyframes fadeInModal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-dialog {
+            background: #FFFFFF;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 480px;
+            border-top: 5px solid var(--primary);
+            overflow: hidden;
+            animation: slideDownModal 0.25s ease-out;
+        }
+        @keyframes slideDownModal {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+            background-color: #F8FAFC;
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.6rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            line-height: 1;
+            padding: 2px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .modal-close-btn:hover {
+            color: var(--danger);
+            background-color: #FEE2E2;
+        }
+        .modal-body {
+            padding: 24px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
     </style>
 </head>
 <body>
@@ -234,6 +332,7 @@ try {
             <div class="nav-user">
                 <span>Olá, <strong><?= $user['nome'] ?></strong></span>
                 <span class="badge-profile"><?= $user['perfil'] ?></span>
+                <a href="alterarsenha.php" style="color: var(--accent); margin-left: 10px; text-decoration: underline; font-size: 0.8rem;">Alterar Senha</a>
             </div>
             <a href="logout.php" class="btn-logout">Sair</a>
         </nav>
@@ -268,72 +367,102 @@ try {
             <button class="tab-btn" onclick="switchTab(this, 'tab-usuarios')">Usuários & Acessos</button>
         </div>
 
-        <!-- CONTEÚDO 1: EFETIVO MILITAR -->
+        <!-- CONTEÚDO 1: EFETIVO MILITAR (ÁREA AMPLA FULL-WIDTH) -->
         <div id="tab-efetivo" class="tab-content active">
-            <div class="admin-flex">
-                <!-- Coluna Esquerda: Cadastro e Edição -->
-                <div class="legend-box" id="boxMilitar" style="height: fit-content; display: none;">
-                    <h3 id="formMilitarTitle">Editar Seção/Escala</h3>
-                    <form action="admin.php" method="POST" id="formMilitar" style="margin-top: 15px;">
-                        <input type="hidden" name="action" id="militarAction" value="edit_militar">
-                        <input type="hidden" name="id" id="militarId" value="">
-
-                        <div class="form-group">
-                            <label for="mNome">Nome do Militar (Gerenciado pelo SGP)</label>
-                            <input type="text" name="nome" id="mNome" class="form-input" readonly style="background-color: var(--border);">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="mSecao">Seção</label>
-                            <input type="text" name="secao" id="mSecao" class="form-input" list="secoesList" style="padding: 10px; text-transform: uppercase;" placeholder="Ex: TWR" required autocomplete="off">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="mEscala">Tipo de Escala</label>
-                            <select name="escala" id="mEscala" class="form-input" style="padding: 10px;" required>
-                                <option value="0">Expediente Administrativo</option>
-                                <option value="1">Escala Operacional (TWR/AIS/EMS)</option>
-                            </select>
-                        </div>
-
-                        <button type="submit" class="btn-primary" id="btnSubmitMilitar">Gravar Alterações</button>
-                        <button type="button" class="btn-logout" id="btnCancelEditMilitar" style="width: 100%; margin-top: 10px; color: var(--text)">Cancelar Edição</button>
-                    </form>
-                </div>
-
-                <!-- Coluna Direita: Listagem -->
-                <div class="section-card" style="margin-bottom: 0;">
-                    <div class="section-title">
+            <div class="section-card" style="margin-bottom: 0;">
+                <div class="section-title">
+                    <div style="display: flex; align-items: center; gap: 12px;">
                         <span>Militares Registrados</span>
-                        <span class="section-badge"><?= count($militares) ?> Totais</span>
+                        <span class="section-badge" id="militarBadgeCount"><?= count($militares) ?> Totais</span>
                     </div>
-                    <div class="table-responsive">
-                        <table class="efetivo-table">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Seção</th>
-                                    <th>Escala</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($militares as $m): ?>
-                                    <tr>
-                                        <td><strong><?= formatarNomeMilitar($m) ?></strong></td>
-                                        <td><?= $m['secao'] ?></td>
-                                        <td><?= $m['escala'] == 1 ? 'Operacional' : 'Expediente' ?></td>
-                                        <td>
-                                            <div class="action-btn-group">
-                                                <button class="btn-action-small btn-edit" onclick="editMilitar(<?= $m['id'] ?>, '<?= addslashes(formatarNomeMilitar($m)) ?>', '<?= addslashes($m['secao']) ?>', <?= $m['escala'] ?>)">Definir Seção/Escala</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="text" id="filtroMilitar" placeholder="Buscar militar ou seção..." 
+                               style="padding: 7px 14px; font-size: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: white; outline: none; width: 250px; font-family: inherit;"
+                               oninput="filtrarTabelaMilitares()">
                     </div>
                 </div>
+                <div class="table-responsive">
+                    <table class="efetivo-table" id="tabelaMilitares">
+                        <thead>
+                            <tr>
+                                <th style="width: 40%;">Nome</th>
+                                <th style="width: 20%;">Seção</th>
+                                <th style="width: 20%;">Escala</th>
+                                <th style="width: 20%; text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($militares as $m): ?>
+                                <tr>
+                                    <td>
+                                        <strong style="color: var(--primary-dark); font-size: 1rem;"><?= formatarNomeMilitar($m) ?></strong>
+                                        <?php if (!empty($m['nome']) && $m['nome'] !== formatarNomeMilitar($m)): ?>
+                                            <div style="font-size: 0.8rem; color: var(--text-muted);"><?= $m['nome'] ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span class="badge-secao"><?= !empty($m['secao']) ? htmlspecialchars($m['secao']) : '<em>Sem Seção</em>' ?></span>
+                                    </td>
+                                    <td>
+                                        <?php if ($m['escala'] == 1): ?>
+                                            <span class="badge-escala escala-operacional">Operacional</span>
+                                        <?php else: ?>
+                                            <span class="badge-escala escala-expediente">Expediente</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <button type="button" class="btn-action-small btn-edit" onclick="editMilitar(<?= $m['id'] ?>, '<?= addslashes(formatarNomeMilitar($m)) ?>', '<?= addslashes($m['secao'] ?? '') ?>', <?= $m['escala'] ?>)">
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                            Definir Seção / Escala
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: EDITAR SEÇÃO E ESCALA DO MILITAR -->
+        <div class="modal-overlay" id="boxMilitar" style="display: none;">
+            <div class="modal-dialog">
+                <div class="modal-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="background: rgba(0, 47, 108, 0.1); padding: 8px; border-radius: 8px; color: var(--primary);">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </div>
+                        <h3 id="formMilitarTitle" style="margin: 0; font-size: 1.15rem; color: var(--primary);">Definir Seção e Escala</h3>
+                    </div>
+                    <button type="button" class="modal-close-btn" id="btnCloseModalMilitar" aria-label="Fechar">&times;</button>
+                </div>
+                <form action="admin.php" method="POST" id="formMilitar" class="modal-body">
+                    <input type="hidden" name="action" id="militarAction" value="edit_militar">
+                    <input type="hidden" name="id" id="militarId" value="">
+
+                    <div class="form-group">
+                        <label for="mNome" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Nome do Militar (Gerenciado pelo SGP)</label>
+                        <input type="text" name="nome" id="mNome" class="form-input" readonly style="background-color: var(--border); font-weight: 600; color: var(--primary-dark);">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mSecao" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Seção</label>
+                        <input type="text" name="secao" id="mSecao" class="form-input" list="secoesList" style="padding: 10px; text-transform: uppercase;" placeholder="Ex: TWR, SELM, AIS..." required autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mEscala" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Tipo de Escala</label>
+                        <select name="escala" id="mEscala" class="form-input" style="padding: 10px;" required>
+                            <option value="0">Expediente Administrativo</option>
+                            <option value="1">Escala Operacional (TWR / AIS / EMS)</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-logout" id="btnCancelEditMilitar" style="flex: 1; color: var(--text); border: 1px solid var(--border); background: #F8FAFC;">Cancelar</button>
+                        <button type="submit" class="btn-primary" id="btnSubmitMilitar" style="flex: 1;">Gravar Alterações</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -475,22 +604,67 @@ try {
             document.getElementById(tabId).classList.add('active');
         }
 
-        // Funções do CRUD de Efetivo
+        // Funções do CRUD de Efetivo (Modal)
         function editMilitar(id, nome, secao, escala) {
-            document.getElementById('boxMilitar').style.display = 'block';
+            const modal = document.getElementById('boxMilitar');
+            modal.style.display = 'flex';
             document.getElementById('militarId').value = id;
             document.getElementById('mNome').value = nome;
             document.getElementById('mSecao').value = secao;
             document.getElementById('mEscala').value = escala;
             
-            document.getElementById('mSecao').focus();
+            setTimeout(() => {
+                document.getElementById('mSecao').focus();
+            }, 50);
         }
 
-        document.getElementById('btnCancelEditMilitar').addEventListener('click', () => {
+        function closeEditMilitar() {
             document.getElementById('militarId').value = '';
             document.getElementById('formMilitar').reset();
             document.getElementById('boxMilitar').style.display = 'none';
+        }
+
+        document.getElementById('btnCancelEditMilitar').addEventListener('click', closeEditMilitar);
+        const btnCloseModalMilitar = document.getElementById('btnCloseModalMilitar');
+        if (btnCloseModalMilitar) btnCloseModalMilitar.addEventListener('click', closeEditMilitar);
+
+        // Fechar modal ao clicar fora ou pressionar ESC
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('boxMilitar');
+            if (e.target === modal) {
+                closeEditMilitar();
+            }
         });
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('boxMilitar');
+                if (modal && modal.style.display === 'flex') {
+                    closeEditMilitar();
+                }
+            }
+        });
+
+        // Filtragem instantânea na tabela de militares
+        function filtrarTabelaMilitares() {
+            const input = document.getElementById('filtroMilitar').value.toUpperCase().trim();
+            const trs = document.querySelectorAll('#tabelaMilitares tbody tr');
+            let visiveis = 0;
+
+            trs.forEach(tr => {
+                const text = tr.innerText.toUpperCase();
+                if (text.includes(input)) {
+                    tr.style.display = '';
+                    visiveis++;
+                } else {
+                    tr.style.display = 'none';
+                }
+            });
+
+            const badge = document.getElementById('militarBadgeCount');
+            if (badge) {
+                badge.innerText = input ? `${visiveis} Encontrados` : '<?= count($militares) ?> Totais';
+            }
+        }
 
 
         // Funções do CRUD de Usuários

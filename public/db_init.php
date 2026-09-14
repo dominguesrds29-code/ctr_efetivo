@@ -54,12 +54,18 @@ try {
     $stmtUser->execute(['admin', $hash, 'Administrador do Sistema', 'admin', null]);
     $stmtUser->execute(['chefe', $hash, 'Chefe do DTCEA-SJ', 'chefia', null]);
     $stmtUser->execute(['encarregado', $hash, 'Encarregado Geral', 'encarregado', null]);
-    $stmtUser->execute(['encarregado_selm', $hash, 'Encarregado da SELM', 'encarregado', 'SELM']);
-    $stmtUser->execute(['encarregado_selt', $hash, 'Encarregado da SELT', 'encarregado', 'SELT']);
-    $stmtUser->execute(['encarregado_ssti', $hash, 'Encarregado da SSTI', 'encarregado', 'SSTI']);
+    $stmtUser->execute(['encarregado_selm', $hash, 'Encarregado da SELM (Antigo)', 'encarregado', 'SELM']);
+    $stmtUser->execute(['encarregado_selt', $hash, 'Encarregado da SELT (Antigo)', 'encarregado', 'SELT']);
+    $stmtUser->execute(['encarregado_ssti', $hash, 'Encarregado da SSTI (Antigo)', 'encarregado', 'SSTI']);
     $stmtUser->execute(['encarregado_twr', $hash, 'Encarregado da TWR', 'encarregado', 'TWR']);
     $stmtUser->execute(['encarregado_ais', $hash, 'Encarregado da AIS', 'encarregado', 'AIS']);
     $stmtUser->execute(['encarregado_ems', $hash, 'Encarregado da EMS', 'encarregado', 'EMS']);
+    
+    // Novos logins específicos conforme solicitação
+    $hash123456 = password_hash('123456', PASSWORD_DEFAULT);
+    $stmtUser->execute(['selm', $hash123456, 'Encarregado SELM', 'encarregado', 'SELM']);
+    $stmtUser->execute(['selt', $hash123456, 'Encarregado SELT', 'encarregado', 'SELT']);
+    $stmtUser->execute(['ssti', $hash123456, 'Encarregado SSTI', 'encarregado', 'SSTI']);
 
     // 3. Ler CSV e importar/atualizar militares e presenças do histórico de Junho de 2026
     echo "Importando dados do CSV...\n";

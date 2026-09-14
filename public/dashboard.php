@@ -112,6 +112,7 @@ try {
             <div class="nav-user">
                 <span>Olá, <strong><?= $user['nome'] ?></strong></span>
                 <span class="badge-profile"><?= $user['perfil'] ?></span>
+                <a href="alterarsenha.php" style="color: var(--accent); margin-left: 10px; text-decoration: underline; font-size: 0.8rem;">Alterar Senha</a>
             </div>
             <a href="logout.php" class="btn-logout">Sair</a>
         </nav>
