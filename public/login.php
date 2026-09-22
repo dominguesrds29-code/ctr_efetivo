@@ -17,14 +17,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($loginInput) && !empty($senha)) {
         try {
-            $secTable = getSecoesTableName($db);
+            $sec = getSecaoInfo($db);
+            $secTable = $sec['table'];
+            $secCol = $sec['name_col'];
             $cleanLogin = str_replace(['.', '-', '/', ' '], '', $loginInput);
 
             $stmt = $db->prepare("
                 SELECT u.*, 
-                       COALESCE(s.sigla, s.nome, 'Sem Seção') AS secao_nome
+                       COALESCE(s.`$secCol`, 'Sem Seção') AS secao_nome
                 FROM users u
-                LEFT JOIN $secTable s ON u.section_id = s.id
+                LEFT JOIN `$secTable` s ON u.section_id = s.id
                 WHERE (
                     u.saram = ? 
                     OR REPLACE(REPLACE(REPLACE(u.saram, '.', ''), '-', ''), ' ', '') = ?
@@ -46,12 +48,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif (!empty($user['is_admin']) && (int)$user['is_admin'] === 2) {
                     $perfil = 'chefia';
                 } else {
-                    // Verificar se o militar é chefe de alguma seção
-                    $stmtChefe = $db->prepare("SELECT id FROM $secTable WHERE chefe_id = ? LIMIT 1");
-                    $stmtChefe->execute([$user['id']]);
-                    if ($stmtChefe->fetch()) {
-                        $perfil = 'chefia';
-                    }
+                    // Verificar se a tabela de seções tem chefe_id e se o usuário é chefe
+                    try {
+                        $secCols = $db->query("SHOW COLUMNS FROM `$secTable`")->fetchAll(PDO::FETCH_COLUMN);
+                        if (in_array('chefe_id', $secCols)) {
+                            $stmtChefe = $db->prepare("SELECT id FROM `$secTable` WHERE chefe_id = ? LIMIT 1");
+                            $stmtChefe->execute([$user['id']]);
+                            if ($stmtChefe->fetch()) {
+                                $perfil = 'chefia';
+                            }
+                        }
+                    } catch (Exception $e) {}
                 }
 
                 $_SESSION['user_id'] = $user['id'];

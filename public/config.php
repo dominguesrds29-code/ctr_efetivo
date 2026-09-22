@@ -87,21 +87,36 @@ function formatarNomeMilitar($m) {
     return trim($posto . $nomeStr);
 }
 
-function getSecoesTableName($db) {
-    static $cachedTable = null;
-    if ($cachedTable !== null) return $cachedTable;
+function getSecaoInfo($db) {
+    static $info = null;
+    if ($info !== null) return $info;
+
+    $table = 'sections';
+    $nameCol = 'name';
+
     try {
-        $stmt = $db->query("SHOW TABLES LIKE 'secoes'");
-        if ($stmt->rowCount() > 0) {
-            $cachedTable = 'secoes';
-            return $cachedTable;
+        $tables = $db->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+        if (in_array('sections', $tables)) {
+            $table = 'sections';
+        } elseif (in_array('secoes', $tables)) {
+            $table = 'secoes';
         }
-        $stmt = $db->query("SHOW TABLES LIKE 'sections'");
-        if ($stmt->rowCount() > 0) {
-            $cachedTable = 'sections';
-            return $cachedTable;
+
+        $cols = $db->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_COLUMN);
+        if (in_array('name', $cols)) {
+            $nameCol = 'name';
+        } elseif (in_array('sigla', $cols)) {
+            $nameCol = 'sigla';
+        } elseif (in_array('nome', $cols)) {
+            $nameCol = 'nome';
         }
     } catch (Exception $e) {}
-    $cachedTable = 'secoes';
-    return $cachedTable;
+
+    $info = ['table' => $table, 'name_col' => $nameCol];
+    return $info;
+}
+
+function getSecoesTableName($db) {
+    $info = getSecaoInfo($db);
+    return $info['table'];
 }

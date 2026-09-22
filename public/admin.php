@@ -136,16 +136,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Carregar listas para exibição
 try {
+    $sec = getSecaoInfo($db);
+    $secTable = $sec['table'];
+    $secCol = $sec['name_col'];
+
     $militares = $db->query("
         SELECT u.*, 
-               COALESCE(s.sigla, s.nome, 'Sem Seção') AS secao_nome 
+               COALESCE(s.`$secCol`, 'Sem Seção') AS secao_nome 
         FROM users u 
-        LEFT JOIN $secTable s ON u.section_id = s.id 
+        LEFT JOIN `$secTable` s ON u.section_id = s.id 
         WHERE u.deleted_at IS NULL
         ORDER BY secao_nome ASC, u.name ASC
     ")->fetchAll();
 
-    $secoesList = $db->query("SELECT id, sigla, nome FROM $secTable ORDER BY sigla ASC")->fetchAll();
+    $secoesList = $db->query("SELECT id, `$secCol` AS nome FROM `$secTable` ORDER BY `$secCol` ASC")->fetchAll();
 } catch (PDOException $e) {
     die("Erro ao ler dados do banco: " . $e->getMessage());
 }
@@ -476,7 +480,7 @@ try {
                         <label for="mSecaoId" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Seção</label>
                         <select name="section_id" id="mSecaoId" class="form-input" style="padding: 10px;" required>
                             <?php foreach ($secoesList as $sec): ?>
-                                <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['sigla']) ?> - <?= htmlspecialchars($sec['nome']) ?></option>
+                                <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['nome']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -537,7 +541,7 @@ try {
                                 <label for="uSecao">Seção</label>
                                 <select name="section_id" id="uSecao" class="form-input" style="padding: 10px;" required>
                                     <?php foreach ($secoesList as $sec): ?>
-                                        <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['sigla']) ?> - <?= htmlspecialchars($sec['nome']) ?></option>
+                                        <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['nome']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>

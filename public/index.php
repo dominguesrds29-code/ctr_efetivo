@@ -10,27 +10,30 @@ $selectedDate = sanitize($_GET['date'] ?? date('Y-m-d'));
 
 // Buscar todos os militares com suas respectivas presenças no dia selecionado
 try {
-    $secTable = getSecoesTableName($db);
+    $sec = getSecaoInfo($db);
+    $secTable = $sec['table'];
+    $secCol = $sec['name_col'];
+
     if (!empty($user['secao']) && $user['perfil'] === 'encarregado') {
         $stmt = $db->prepare("
             SELECT u.*, 
-                   COALESCE(s.sigla, s.nome, 'Sem Seção') as secao, 
+                   COALESCE(s.`$secCol`, 'Sem Seção') as secao, 
                    p.status 
             FROM users u 
-            LEFT JOIN $secTable s ON u.section_id = s.id
+            LEFT JOIN `$secTable` s ON u.section_id = s.id
             LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
             WHERE u.deleted_at IS NULL
-              AND (u.section_id = ? OR s.sigla = ? OR s.nome = ?)
+              AND (u.section_id = ? OR s.`$secCol` = ?)
             ORDER BY u.escala ASC, secao ASC, u.name ASC
         ");
-        $stmt->execute([$selectedDate, $user['secao_id'] ?? 0, $user['secao'], $user['secao']]);
+        $stmt->execute([$selectedDate, $user['secao_id'] ?? 0, $user['secao']]);
     } else {
         $stmt = $db->prepare("
             SELECT u.*, 
-                   COALESCE(s.sigla, s.nome, 'Sem Seção') as secao, 
+                   COALESCE(s.`$secCol`, 'Sem Seção') as secao, 
                    p.status 
             FROM users u 
-            LEFT JOIN $secTable s ON u.section_id = s.id
+            LEFT JOIN `$secTable` s ON u.section_id = s.id
             LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
             WHERE u.deleted_at IS NULL
             ORDER BY u.escala ASC, secao ASC, u.name ASC

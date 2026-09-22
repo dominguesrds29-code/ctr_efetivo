@@ -7,7 +7,9 @@ require_once __DIR__ . '/config.php';
 try {
     echo "Verificando estrutura do banco de dados '" . ($db_name ?? 'efetivosj') . "'...\n";
 
-    $secTable = getSecoesTableName($db);
+    $secInfo = getSecaoInfo($db);
+    $secTable = $secInfo['table'];
+    $secCol = $secInfo['name_col'];
 
     // 1. Criar tabela de presenças para o controle de efetivo diário
     $db->exec("CREATE TABLE IF NOT EXISTS presencas (
@@ -23,22 +25,12 @@ try {
     echo "Tabela 'presencas' verificada/criada com sucesso!\n";
 
     // 2. Verificar se seções padrão existem se a tabela estiver vazia
-    $totalSecoes = $db->query("SELECT COUNT(*) FROM $secTable")->fetchColumn();
+    $totalSecoes = $db->query("SELECT COUNT(*) FROM `$secTable`")->fetchColumn();
     if ($totalSecoes == 0) {
-        $secoesPadrao = [
-            ['SSTI', 'Seção de Suporte de Tecnologia da Informação'],
-            ['SELT', 'Seção de Eletromecânica'],
-            ['SELM', 'Seção de Eletrônica'],
-            ['EMS', 'Estação Meteorológica de Superfície'],
-            ['SEC-SO', 'Secretaria / Sala de Operações'],
-            ['SIATO', 'Seção de Informações Aeronáuticas e Telecom'],
-            ['AIS', 'Serviço de Informação Aeronáutica'],
-            ['ASSIPACEA', 'Assessoria de Investigação e Prevenção de Acidentes'],
-            ['TWR', 'Torre de Controle']
-        ];
-        $stmtSec = $db->prepare("INSERT INTO $secTable (sigla, nome) VALUES (?, ?)");
-        foreach ($secoesPadrao as $sec) {
-            $stmtSec->execute([$sec[0], $sec[1]]);
+        $secoesPadrao = ['SSTI', 'SELT', 'SELM', 'EMS', 'SEC-SO', 'SIATO', 'AIS', 'ASSIPACEA', 'TWR'];
+        $stmtSec = $db->prepare("INSERT INTO `$secTable` (`$secCol`) VALUES (?)");
+        foreach ($secoesPadrao as $secName) {
+            $stmtSec->execute([$secName]);
         }
         echo "Seções padrão inseridas na tabela '$secTable'.\n";
     }

@@ -9,7 +9,9 @@ $user = getCurrentUser();
 $selectedDate = sanitize($_GET['date'] ?? date('Y-m-d'));
 
 try {
-    $secTable = getSecoesTableName($db);
+    $sec = getSecaoInfo($db);
+    $secTable = $sec['table'];
+    $secCol = $sec['name_col'];
 
     // 1. Total do Efetivo Geral
     $stmtGeral = $db->query("SELECT COUNT(*) as total FROM users WHERE deleted_at IS NULL");
@@ -43,7 +45,7 @@ try {
     // 3. Detalhamento por Seção
     $stmtSecoes = $db->prepare("
         SELECT 
-            COALESCE(s.sigla, s.nome, 'Sem Seção') as secao,
+            COALESCE(s.`$secCol`, 'Sem Seção') as secao,
             COUNT(u.id) as total_secao,
             SUM(CASE WHEN p.status IN ('P', 'EA', 'HO', 'O') THEN 1 ELSE 0 END) as presentes_secao,
             SUM(CASE WHEN p.status IN ('A', 'PA', 'PB') THEN 1 ELSE 0 END) as ausentes_secao,
@@ -51,7 +53,7 @@ try {
             SUM(CASE WHEN p.status IN ('DM', 'INS', 'LPM', 'D', 'DP') THEN 1 ELSE 0 END) as dm_secao,
             SUM(CASE WHEN p.status IN ('C', 'M') THEN 1 ELSE 0 END) as afastados_secao
         FROM users u
-        LEFT JOIN $secTable s ON u.section_id = s.id
+        LEFT JOIN `$secTable` s ON u.section_id = s.id
         LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
         WHERE u.deleted_at IS NULL
         GROUP BY u.section_id, secao
@@ -64,11 +66,11 @@ try {
     $stmtAfastados = $db->prepare("
         SELECT 
             u.id, u.name, u.war_name, u.grade, u.saram,
-            COALESCE(s.sigla, s.nome, 'Sem Seção') as secao, 
+            COALESCE(s.`$secCol`, 'Sem Seção') as secao, 
             p.status
         FROM users u
         JOIN presencas p ON u.id = p.militar_id
-        LEFT JOIN $secTable s ON u.section_id = s.id
+        LEFT JOIN `$secTable` s ON u.section_id = s.id
         WHERE p.data = ? 
           AND p.status NOT IN ('P', 'EA', 'HO', 'O')
           AND u.deleted_at IS NULL
