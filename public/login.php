@@ -42,13 +42,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user && password_verify($senha, $user['password'])) {
                 // Determinar perfil do usuário
-                $perfil = 'encarregado';
+                $perfil = 'auxiliar';
                 if (!empty($user['is_admin']) && (int)$user['is_admin'] === 1) {
                     $perfil = 'admin';
                 } elseif (!empty($user['is_admin']) && (int)$user['is_admin'] === 2) {
                     $perfil = 'chefia';
+                } elseif (!empty($user['is_admin']) && (int)$user['is_admin'] === 3) {
+                    $perfil = 'encarregado';
                 } else {
-                    // Verificar se a tabela de seções tem chefe_id e se o usuário é chefe
+                    // Verificar se o militar é chefe de alguma seção
                     try {
                         $secCols = $db->query("SHOW COLUMNS FROM `$secTable`")->fetchAll(PDO::FETCH_COLUMN);
                         if (in_array('chefe_id', $secCols)) {

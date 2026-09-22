@@ -9,10 +9,16 @@ $user = getCurrentUser();
 $successMsg = '';
 $errorMsg = '';
 $secTable = getSecoesTableName($db);
+$activeTab = sanitize($_GET['tab'] ?? 'tab-efetivo');
 
 // Processar formulários POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = sanitize($_POST['action'] ?? '');
+    if (in_array($action, ['add_user', 'edit_user', 'change_password', 'delete_user'])) {
+        $activeTab = 'tab-usuarios';
+    } elseif ($action === 'edit_militar') {
+        $activeTab = 'tab-efetivo';
+    }
 
     // --- MILITARES: EDITAR SEÇÃO E ESCALA ---
     if ($action === 'edit_militar') {
@@ -41,11 +47,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $grade = sanitize($_POST['grade'] ?? 'SO');
         $email = sanitize($_POST['email'] ?? '');
         $senha = $_POST['senha'] ?? '';
-        $perfil = sanitize($_POST['perfil'] ?? 'encarregado');
+        $perfil = sanitize($_POST['perfil'] ?? 'auxiliar');
         $sectionId = (int)($_POST['section_id'] ?? 1);
         $escala = (int)($_POST['escala'] ?? 0);
 
-        $isAdmin = ($perfil === 'admin') ? 1 : (($perfil === 'chefia') ? 2 : 0);
+        $isAdmin = 0;
+        if ($perfil === 'admin') {
+            $isAdmin = 1;
+        } elseif ($perfil === 'chefia') {
+            $isAdmin = 2;
+        } elseif ($perfil === 'encarregado') {
+            $isAdmin = 3;
+        }
 
         if (empty($email) && !empty($saram)) {
             $email = $saram . '@fab.mil.br';
@@ -76,11 +89,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $warName = sanitize($_POST['war_name'] ?? '');
         $grade = sanitize($_POST['grade'] ?? 'SO');
         $email = sanitize($_POST['email'] ?? '');
-        $perfil = sanitize($_POST['perfil'] ?? 'encarregado');
+        $perfil = sanitize($_POST['perfil'] ?? 'auxiliar');
         $sectionId = (int)($_POST['section_id'] ?? 1);
         $escala = (int)($_POST['escala'] ?? 0);
 
-        $isAdmin = ($perfil === 'admin') ? 1 : (($perfil === 'chefia') ? 2 : 0);
+        $isAdmin = 0;
+        if ($perfil === 'admin') {
+            $isAdmin = 1;
+        } elseif ($perfil === 'chefia') {
+            $isAdmin = 2;
+        } elseif ($perfil === 'encarregado') {
+            $isAdmin = 3;
+        }
 
         if ($id > 0 && !empty($saram) && !empty($nome)) {
             try {
@@ -210,6 +230,7 @@ try {
         .badge-admin-profile.admin { background-color: var(--danger); color: white; }
         .badge-admin-profile.chefia { background-color: var(--info); color: white; }
         .badge-admin-profile.encarregado { background-color: var(--success); color: white; }
+        .badge-admin-profile.auxiliar { background-color: #64748B; color: white; }
         
         .action-btn-group {
             display: flex;
@@ -390,12 +411,12 @@ try {
 
         <!-- Abas -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab(this, 'tab-efetivo')">Efetivo Militar (<?= count($militares) ?>)</button>
-            <button class="tab-btn" onclick="switchTab(this, 'tab-usuarios')">Cadastrar / Editar Usuário</button>
+            <button class="tab-btn <?= $activeTab === 'tab-efetivo' ? 'active' : '' ?>" onclick="switchTab(this, 'tab-efetivo')">Efetivo Militar (<?= count($militares) ?>)</button>
+            <button class="tab-btn <?= $activeTab === 'tab-usuarios' ? 'active' : '' ?>" onclick="switchTab(this, 'tab-usuarios')">Cadastrar / Editar Usuário</button>
         </div>
 
         <!-- CONTEÚDO 1: EFETIVO MILITAR -->
-        <div id="tab-efetivo" class="tab-content active">
+        <div id="tab-efetivo" class="tab-content <?= $activeTab === 'tab-efetivo' ? 'active' : '' ?>">
             <div class="section-card" style="margin-bottom: 0;">
                 <div class="section-title">
                     <div style="display: flex; align-items: center; gap: 12px;">
@@ -502,7 +523,7 @@ try {
         </div>
 
         <!-- CONTEÚDO 2: USUÁRIOS E GESTÃO COMPLETA -->
-        <div id="tab-usuarios" class="tab-content">
+        <div id="tab-usuarios" class="tab-content <?= $activeTab === 'tab-usuarios' ? 'active' : '' ?>">
             <div class="admin-flex">
                 <!-- Coluna Esquerda: Cadastro / Edição -->
                 <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -549,6 +570,7 @@ try {
                             <div class="form-group">
                                 <label for="uPerfil">Perfil de Acesso</label>
                                 <select name="perfil" id="uPerfil" class="form-input" style="padding: 10px;" required>
+                                    <option value="auxiliar">Auxiliar / Militar (Membro da Seção)</option>
                                     <option value="encarregado">Encarregado (Lançar chamada de sua seção)</option>
                                     <option value="chefia">Chefia (Visualizar Painel e Indicadores)</option>
                                     <option value="admin">Administrador (Acesso total)</option>
@@ -614,7 +636,14 @@ try {
                             </thead>
                             <tbody>
                                 <?php foreach ($militares as $u): 
-                                    $perf = ($u['is_admin'] == 1) ? 'admin' : (($u['is_admin'] == 2) ? 'chefia' : 'encarregado');
+                                    $perf = 'auxiliar';
+                                    if ((int)$u['is_admin'] === 1) {
+                                        $perf = 'admin';
+                                    } elseif ((int)$u['is_admin'] === 2) {
+                                        $perf = 'chefia';
+                                    } elseif ((int)$u['is_admin'] === 3) {
+                                        $perf = 'encarregado';
+                                    }
                                 ?>
                                     <tr>
                                         <td>
