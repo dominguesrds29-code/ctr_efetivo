@@ -8,35 +8,46 @@ requireLogin();
 $user = getCurrentUser();
 $selectedDate = sanitize($_GET['date'] ?? date('Y-m-d'));
 
-// Buscar todos os militares com suas respectivas presenças no dia selecionado
+// Buscar todos os militares do expediente com suas respectivas presenças no dia selecionado
 try {
     $sec = getSecaoInfo($db);
     $secTable = $sec['table'];
     $secCol = $sec['name_col'];
 
+    // Filtro para incluir apenas pessoal do expediente e excluir seções operacionais / sem seção
+    $filterExpediente = "
+        AND u.escala = 0 
+        AND u.section_id IS NOT NULL 
+        AND u.section_id > 0
+        AND s.id IS NOT NULL
+        AND TRIM(COALESCE(s.`$secCol`, '')) NOT IN ('Torre de Controle', 'TWR', 'EMS', 'EMS1', 'Sala AIS', 'AIS', 'Sem Seção', '')
+    ";
+
     if (!empty($user['secao']) && $user['perfil'] === 'encarregado') {
         $stmt = $db->prepare("
             SELECT u.*, 
-                   COALESCE(s.`$secCol`, 'Sem Seção') as secao, 
+                   s.`$secCol` as secao, 
                    p.status 
             FROM users u 
-            LEFT JOIN `$secTable` s ON u.section_id = s.id
+            JOIN `$secTable` s ON u.section_id = s.id
             LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
             WHERE u.deleted_at IS NULL
+              $filterExpediente
               AND (u.section_id = ? OR s.`$secCol` = ?)
-            ORDER BY u.escala ASC, secao ASC, u.name ASC
+            ORDER BY secao ASC, u.name ASC
         ");
         $stmt->execute([$selectedDate, $user['secao_id'] ?? 0, $user['secao']]);
     } else {
         $stmt = $db->prepare("
             SELECT u.*, 
-                   COALESCE(s.`$secCol`, 'Sem Seção') as secao, 
+                   s.`$secCol` as secao, 
                    p.status 
             FROM users u 
-            LEFT JOIN `$secTable` s ON u.section_id = s.id
+            JOIN `$secTable` s ON u.section_id = s.id
             LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
             WHERE u.deleted_at IS NULL
-            ORDER BY u.escala ASC, secao ASC, u.name ASC
+              $filterExpediente
+            ORDER BY secao ASC, u.name ASC
         ");
         $stmt->execute([$selectedDate]);
     }

@@ -13,11 +13,25 @@ try {
     $secTable = $sec['table'];
     $secCol = $sec['name_col'];
 
-    // 1. Total do Efetivo Geral
-    $stmtGeral = $db->query("SELECT COUNT(*) as total FROM users WHERE deleted_at IS NULL");
+    // Filtro para incluir apenas pessoal do expediente e excluir seções operacionais / sem seção
+    $filterExpediente = "
+        AND u.escala = 0 
+        AND u.section_id IS NOT NULL 
+        AND u.section_id > 0
+        AND s.id IS NOT NULL
+        AND TRIM(COALESCE(s.`$secCol`, '')) NOT IN ('Torre de Controle', 'TWR', 'EMS', 'EMS1', 'Sala AIS', 'AIS', 'Sem Seção', '')
+    ";
+
+    // 1. Total do Efetivo do Expediente
+    $stmtGeral = $db->query("
+        SELECT COUNT(u.id) as total 
+        FROM users u 
+        JOIN `$secTable` s ON u.section_id = s.id 
+        WHERE u.deleted_at IS NULL $filterExpediente
+    ");
     $totalEfetivo = $stmtGeral->fetch()['total'];
 
-    // 2. Presença Geral do dia Selecionado
+    // 2. Presença Geral do dia Selecionado (Apenas Expediente)
     $stmtPresenca = $db->prepare("
         SELECT 
             SUM(CASE WHEN p.status IN ('P', 'EA', 'HO', 'O') THEN 1 ELSE 0 END) as presentes,
@@ -28,7 +42,10 @@ try {
             SUM(CASE WHEN p.status IS NOT NULL THEN 1 ELSE 0 END) as total_respondido
         FROM presencas p
         JOIN users u ON p.militar_id = u.id
-        WHERE p.data = ? AND u.deleted_at IS NULL
+        JOIN `$secTable` s ON u.section_id = s.id
+        WHERE p.data = ? 
+          AND u.deleted_at IS NULL 
+          $filterExpediente
     ");
     $stmtPresenca->execute([$selectedDate]);
     $stats = $stmtPresenca->fetch();
@@ -42,10 +59,10 @@ try {
 
     $taxaPresenca = $totalRespondido > 0 ? round(($presentes / $totalRespondido) * 100, 1) : 0;
 
-    // 3. Detalhamento por Seção
+    // 3. Detalhamento por Seção (Apenas Expediente)
     $stmtSecoes = $db->prepare("
         SELECT 
-            COALESCE(s.`$secCol`, 'Sem Seção') as secao,
+            s.`$secCol` as secao,
             COUNT(u.id) as total_secao,
             SUM(CASE WHEN p.status IN ('P', 'EA', 'HO', 'O') THEN 1 ELSE 0 END) as presentes_secao,
             SUM(CASE WHEN p.status IN ('A', 'PA', 'PB') THEN 1 ELSE 0 END) as ausentes_secao,
@@ -53,27 +70,29 @@ try {
             SUM(CASE WHEN p.status IN ('DM', 'INS', 'LPM', 'D', 'DP') THEN 1 ELSE 0 END) as dm_secao,
             SUM(CASE WHEN p.status IN ('C', 'M') THEN 1 ELSE 0 END) as afastados_secao
         FROM users u
-        LEFT JOIN `$secTable` s ON u.section_id = s.id
+        JOIN `$secTable` s ON u.section_id = s.id
         LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
-        WHERE u.deleted_at IS NULL
+        WHERE u.deleted_at IS NULL 
+          $filterExpediente
         GROUP BY u.section_id, secao
         ORDER BY secao ASC
     ");
     $stmtSecoes->execute([$selectedDate]);
     $secoesData = $stmtSecoes->fetchAll();
 
-    // 4. Militares Afastados / Condições Especiais Hoje
+    // 4. Militares Afastados / Condições Especiais Hoje (Apenas Expediente)
     $stmtAfastados = $db->prepare("
         SELECT 
             u.id, u.name, u.war_name, u.grade, u.saram,
-            COALESCE(s.`$secCol`, 'Sem Seção') as secao, 
+            s.`$secCol` as secao, 
             p.status
         FROM users u
         JOIN presencas p ON u.id = p.militar_id
-        LEFT JOIN `$secTable` s ON u.section_id = s.id
+        JOIN `$secTable` s ON u.section_id = s.id
         WHERE p.data = ? 
           AND p.status NOT IN ('P', 'EA', 'HO', 'O')
-          AND u.deleted_at IS NULL
+          AND u.deleted_at IS NULL 
+          $filterExpediente
         ORDER BY p.status ASC, secao ASC, u.name ASC
     ");
     $stmtAfastados->execute([$selectedDate]);
@@ -135,7 +154,7 @@ try {
         <div class="page-header">
             <div class="page-title">
                 <h2>Painel Estratégico do Efetivo</h2>
-                <p>Análise consolidada e taxas de presença do efetivo militar por seção.</p>
+                <p>Análise consolidada e taxas de presença do efetivo militar do expediente por seção.</p>
             </div>
             <form action="dashboard.php" method="GET" class="date-selector">
                 <label for="dateInput">Visualizar Data:</label>
@@ -146,9 +165,9 @@ try {
         <!-- Bento Grid de Estatísticas Rápidas -->
         <div class="dashboard-grid">
             <div class="stat-card primary">
-                <div class="stat-label">Efetivo Cadastrado</div>
+                <div class="stat-label">Efetivo do Expediente</div>
                 <div class="stat-value"><?= $totalEfetivo ?></div>
-                <div class="stat-footer">Militares ativos no sistema</div>
+                <div class="stat-footer">Militares do expediente ativos</div>
             </div>
             <div class="stat-card success">
                 <div class="stat-label">Disponíveis / Presentes</div>
@@ -220,7 +239,7 @@ try {
             <!-- Coluna Direita: Condições Especiais / Ausências -->
             <div class="section-card" style="margin-bottom: 0;">
                 <div class="section-title">
-                    <span>Afastamentos & Situações Especiais</span>
+                    <span>Afastamentos e Situações Especiais</span>
                     <span class="section-badge" style="background-color: var(--danger); color: white;"><?= count($listaAfastados) ?></span>
                 </div>
                 <div class="table-responsive">
