@@ -10,23 +10,30 @@ $selectedDate = sanitize($_GET['date'] ?? date('Y-m-d'));
 
 // Buscar todos os militares com suas respectivas presenças no dia selecionado
 try {
-    if (!empty($user['secao'])) {
+    $secTable = getSecoesTableName($db);
+    if (!empty($user['secao']) && $user['perfil'] === 'encarregado') {
         $stmt = $db->prepare("
-            SELECT m.*, COALESCE(e.escala, 0) as escala, p.status 
-            FROM militares m 
-            LEFT JOIN ctr_escalas e ON m.id = e.militar_id
-            LEFT JOIN presencas p ON m.id = p.militar_id AND p.data = ?
-            WHERE m.secao = ?
-            ORDER BY escala ASC, m.secao ASC, m.id ASC
+            SELECT u.*, 
+                   COALESCE(s.sigla, s.nome, 'Sem Seção') as secao, 
+                   p.status 
+            FROM users u 
+            LEFT JOIN $secTable s ON u.section_id = s.id
+            LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
+            WHERE u.deleted_at IS NULL
+              AND (u.section_id = ? OR s.sigla = ? OR s.nome = ?)
+            ORDER BY u.escala ASC, secao ASC, u.name ASC
         ");
-        $stmt->execute([$selectedDate, $user['secao']]);
+        $stmt->execute([$selectedDate, $user['secao_id'] ?? 0, $user['secao'], $user['secao']]);
     } else {
         $stmt = $db->prepare("
-            SELECT m.*, COALESCE(e.escala, 0) as escala, p.status 
-            FROM militares m 
-            LEFT JOIN ctr_escalas e ON m.id = e.militar_id
-            LEFT JOIN presencas p ON m.id = p.militar_id AND p.data = ?
-            ORDER BY escala ASC, m.secao ASC, m.id ASC
+            SELECT u.*, 
+                   COALESCE(s.sigla, s.nome, 'Sem Seção') as secao, 
+                   p.status 
+            FROM users u 
+            LEFT JOIN $secTable s ON u.section_id = s.id
+            LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
+            WHERE u.deleted_at IS NULL
+            ORDER BY u.escala ASC, secao ASC, u.name ASC
         ");
         $stmt->execute([$selectedDate]);
     }
@@ -38,7 +45,8 @@ try {
 // Agrupar militares por seção
 $secoes = [];
 foreach ($militares as $m) {
-    $secoes[$m['secao']][] = $m;
+    $secNome = !empty($m['secao']) ? $m['secao'] : 'Sem Seção';
+    $secoes[$secNome][] = $m;
 }
 
 $errorMsg = sanitize($_GET['error'] ?? '');
@@ -187,7 +195,12 @@ $errorMsg = sanitize($_GET['error'] ?? '');
                             ?>
                                 <tr>
                                     <td><?= $index + 1 ?></td>
-                                    <td><strong><?= formatarNomeMilitar($membro) ?></strong></td>
+                                    <td>
+                                        <strong><?= formatarNomeMilitar($membro) ?></strong>
+                                        <?php if (!empty($membro['saram'])): ?>
+                                            <small style="color: var(--text-muted); display: block; font-size: 0.78rem;">SARAM: <?= $membro['saram'] ?></small>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <select class="status-select" data-militar-id="<?= $membro['id'] ?>">
                                             <option value="" <?= $status === '' ? 'selected' : '' ?>>-- Selecionar --</option>

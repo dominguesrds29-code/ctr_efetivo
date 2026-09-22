@@ -30,7 +30,7 @@ loadEnv(__DIR__ . '/.env');
 
 $db_host = getenv('DB_HOST') ?: '127.0.0.1';
 $db_port = getenv('DB_PORT') ?: '3306';
-$db_name = getenv('DB_DATABASE') ?: 'sgp_dtceasj';
+$db_name = getenv('DB_DATABASE') ?: 'efetivosj';
 $db_user = getenv('DB_USERNAME') ?: 'root';
 $db_pass = getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : '';
 
@@ -67,13 +67,41 @@ $statusList = [
 ];
 
 function sanitize($data) {
-    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars(trim((string)$data), ENT_QUOTES, 'UTF-8');
 }
 
 function formatarNomeMilitar($m) {
-    $posto = (!empty($m['posto_grad']) && $m['posto_grad'] !== 'MILITAR') ? $m['posto_grad'] . ' ' : '';
-    $nomeStr = (!empty($m['nome_guerra']) && trim($m['nome_guerra']) !== '-' && trim($m['nome_guerra']) !== '') 
-               ? $m['nome_guerra'] 
-               : $m['nome'];
+    if (!$m) return '';
+    $posto = '';
+    $gradeField = $m['grade'] ?? $m['posto_grad'] ?? '';
+    if (!empty($gradeField) && strtoupper(trim($gradeField)) !== 'MILITAR') {
+        $posto = trim($gradeField) . ' ';
+    }
+    
+    $nomeGuerra = $m['war_name'] ?? $m['nome_guerra'] ?? '';
+    if (!empty($nomeGuerra) && trim($nomeGuerra) !== '-' && trim($nomeGuerra) !== '') {
+        $nomeStr = trim($nomeGuerra);
+    } else {
+        $nomeStr = trim($m['name'] ?? $m['nome'] ?? '');
+    }
     return trim($posto . $nomeStr);
+}
+
+function getSecoesTableName($db) {
+    static $cachedTable = null;
+    if ($cachedTable !== null) return $cachedTable;
+    try {
+        $stmt = $db->query("SHOW TABLES LIKE 'secoes'");
+        if ($stmt->rowCount() > 0) {
+            $cachedTable = 'secoes';
+            return $cachedTable;
+        }
+        $stmt = $db->query("SHOW TABLES LIKE 'sections'");
+        if ($stmt->rowCount() > 0) {
+            $cachedTable = 'sections';
+            return $cachedTable;
+        }
+    } catch (Exception $e) {}
+    $cachedTable = 'secoes';
+    return $cachedTable;
 }

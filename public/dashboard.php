@@ -9,21 +9,24 @@ $user = getCurrentUser();
 $selectedDate = sanitize($_GET['date'] ?? date('Y-m-d'));
 
 try {
+    $secTable = getSecoesTableName($db);
+
     // 1. Total do Efetivo Geral
-    $stmtGeral = $db->query("SELECT COUNT(*) as total FROM militares");
+    $stmtGeral = $db->query("SELECT COUNT(*) as total FROM users WHERE deleted_at IS NULL");
     $totalEfetivo = $stmtGeral->fetch()['total'];
 
     // 2. Presença Geral do dia Selecionado
     $stmtPresenca = $db->prepare("
         SELECT 
-            SUM(CASE WHEN status IN ('P', 'EA', 'HO', 'O') THEN 1 ELSE 0 END) as presentes,
-            SUM(CASE WHEN status IN ('A', 'PA', 'PB') THEN 1 ELSE 0 END) as ausentes,
-            SUM(CASE WHEN status = 'F' THEN 1 ELSE 0 END) as ferias,
-            SUM(CASE WHEN status IN ('DM', 'INS', 'LPM', 'D', 'DP') THEN 1 ELSE 0 END) as dm,
-            SUM(CASE WHEN status IN ('C', 'M') THEN 1 ELSE 0 END) as afastados, -- Curso/Missão
-            SUM(CASE WHEN status IS NOT NULL THEN 1 ELSE 0 END) as total_respondido
-        FROM presencas 
-        WHERE data = ?
+            SUM(CASE WHEN p.status IN ('P', 'EA', 'HO', 'O') THEN 1 ELSE 0 END) as presentes,
+            SUM(CASE WHEN p.status IN ('A', 'PA', 'PB') THEN 1 ELSE 0 END) as ausentes,
+            SUM(CASE WHEN p.status = 'F' THEN 1 ELSE 0 END) as ferias,
+            SUM(CASE WHEN p.status IN ('DM', 'INS', 'LPM', 'D', 'DP') THEN 1 ELSE 0 END) as dm,
+            SUM(CASE WHEN p.status IN ('C', 'M') THEN 1 ELSE 0 END) as afastados,
+            SUM(CASE WHEN p.status IS NOT NULL THEN 1 ELSE 0 END) as total_respondido
+        FROM presencas p
+        JOIN users u ON p.militar_id = u.id
+        WHERE p.data = ? AND u.deleted_at IS NULL
     ");
     $stmtPresenca->execute([$selectedDate]);
     $stats = $stmtPresenca->fetch();
@@ -38,31 +41,38 @@ try {
     $taxaPresenca = $totalRespondido > 0 ? round(($presentes / $totalRespondido) * 100, 1) : 0;
 
     // 3. Detalhamento por Seção
-    // Vamos trazer a lista de militares agrupando por seção e calculando os totais
     $stmtSecoes = $db->prepare("
         SELECT 
-            m.secao,
-            COUNT(m.id) as total_secao,
+            COALESCE(s.sigla, s.nome, 'Sem Seção') as secao,
+            COUNT(u.id) as total_secao,
             SUM(CASE WHEN p.status IN ('P', 'EA', 'HO', 'O') THEN 1 ELSE 0 END) as presentes_secao,
             SUM(CASE WHEN p.status IN ('A', 'PA', 'PB') THEN 1 ELSE 0 END) as ausentes_secao,
             SUM(CASE WHEN p.status = 'F' THEN 1 ELSE 0 END) as ferias_secao,
             SUM(CASE WHEN p.status IN ('DM', 'INS', 'LPM', 'D', 'DP') THEN 1 ELSE 0 END) as dm_secao,
             SUM(CASE WHEN p.status IN ('C', 'M') THEN 1 ELSE 0 END) as afastados_secao
-        FROM militares m
-        LEFT JOIN presencas p ON m.id = p.militar_id AND p.data = ?
-        GROUP BY m.secao
-        ORDER BY m.secao ASC
+        FROM users u
+        LEFT JOIN $secTable s ON u.section_id = s.id
+        LEFT JOIN presencas p ON u.id = p.militar_id AND p.data = ?
+        WHERE u.deleted_at IS NULL
+        GROUP BY u.section_id, secao
+        ORDER BY secao ASC
     ");
     $stmtSecoes->execute([$selectedDate]);
     $secoesData = $stmtSecoes->fetchAll();
 
     // 4. Militares Afastados / Condições Especiais Hoje
     $stmtAfastados = $db->prepare("
-        SELECT m.nome, m.posto_grad, m.nome_guerra, m.secao, p.status
-        FROM militares m
-        JOIN presencas p ON m.id = p.militar_id
-        WHERE p.data = ? AND p.status NOT IN ('P', 'EA', 'HO', 'O')
-        ORDER BY p.status ASC, m.secao ASC, m.nome ASC
+        SELECT 
+            u.id, u.name, u.war_name, u.grade, u.saram,
+            COALESCE(s.sigla, s.nome, 'Sem Seção') as secao, 
+            p.status
+        FROM users u
+        JOIN presencas p ON u.id = p.militar_id
+        LEFT JOIN $secTable s ON u.section_id = s.id
+        WHERE p.data = ? 
+          AND p.status NOT IN ('P', 'EA', 'HO', 'O')
+          AND u.deleted_at IS NULL
+        ORDER BY p.status ASC, secao ASC, u.name ASC
     ");
     $stmtAfastados->execute([$selectedDate]);
     $listaAfastados = $stmtAfastados->fetchAll();

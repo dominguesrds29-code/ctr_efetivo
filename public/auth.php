@@ -35,9 +35,11 @@ function getCurrentUser() {
     if (!isLoggedIn()) return null;
     return [
         'id' => $_SESSION['user_id'],
-        'usuario' => $_SESSION['user_usuario'],
-        'nome' => $_SESSION['user_nome'],
-        'perfil' => $_SESSION['user_perfil'],
+        'saram' => $_SESSION['user_saram'] ?? '',
+        'email' => $_SESSION['user_email'] ?? '',
+        'nome' => $_SESSION['user_nome'] ?? '',
+        'perfil' => $_SESSION['user_perfil'] ?? 'encarregado',
+        'secao_id' => $_SESSION['user_secao_id'] ?? null,
         'secao' => $_SESSION['user_secao'] ?? null
     ];
 }

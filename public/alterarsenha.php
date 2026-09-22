@@ -18,14 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($nova_senha !== $confirma_senha) {
             $error = 'A nova senha e a confirmação não conferem.';
         } else {
-            // Obter senha_hash atual do banco
-            $stmt = $db->prepare("SELECT senha_hash FROM usuarios WHERE id = ?");
+            // Obter senha atual do banco
+            $stmt = $db->prepare("SELECT password FROM users WHERE id = ?");
             $stmt->execute([$user['id']]);
             $userData = $stmt->fetch();
 
-            if ($userData && password_verify($senha_atual, $userData['senha_hash'])) {
+            if ($userData && password_verify($senha_atual, $userData['password'])) {
                 $novo_hash = password_hash($nova_senha, PASSWORD_DEFAULT);
-                $stmtUpdate = $db->prepare("UPDATE usuarios SET senha_hash = ? WHERE id = ?");
+                $stmtUpdate = $db->prepare("UPDATE users SET password = ? WHERE id = ?");
                 $stmtUpdate->execute([$novo_hash, $user['id']]);
                 $success = 'Senha alterada com sucesso!';
             } else {

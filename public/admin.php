@@ -1,6 +1,6 @@
 <?php
 // admin.php
-// Painel Administrativo do Sistema - CRUD de Militares e Usuários
+// Painel Administrativo do Sistema - Gestão de Efetivo e Usuários no Banco EfetivoSJ
 
 require_once __DIR__ . '/auth.php';
 requireAdmin(); // Apenas administradores podem acessar esta página
@@ -8,76 +8,96 @@ requireAdmin(); // Apenas administradores podem acessar esta página
 $user = getCurrentUser();
 $successMsg = '';
 $errorMsg = '';
+$secTable = getSecoesTableName($db);
 
 // Processar formulários POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = sanitize($_POST['action'] ?? '');
 
-    // --- MILITARES CRUD ---
+    // --- MILITARES: EDITAR SEÇÃO E ESCALA ---
     if ($action === 'edit_militar') {
         $id = (int)($_POST['id'] ?? 0);
-        $secao = sanitize($_POST['secao'] ?? '');
+        $sectionId = (int)($_POST['section_id'] ?? 0);
         $escala = (int)($_POST['escala'] ?? 0);
 
-        if ($id > 0 && !empty($secao)) {
+        if ($id > 0 && $sectionId > 0) {
             try {
-                $stmt = $db->prepare("UPDATE militares SET secao = ? WHERE id = ?");
-                $stmt->execute([$secao, $id]);
-                
-                $stmtEscala = $db->prepare("REPLACE INTO ctr_escalas (militar_id, escala) VALUES (?, ?)");
-                $stmtEscala->execute([$id, $escala]);
-                
+                $stmt = $db->prepare("UPDATE users SET section_id = ?, escala = ? WHERE id = ?");
+                $stmt->execute([$sectionId, $escala, $id]);
                 $successMsg = "Dados do militar atualizados com sucesso!";
             } catch (PDOException $e) {
                 $errorMsg = "Erro ao atualizar militar: " . $e->getMessage();
             }
         } else {
-            $errorMsg = "Dados inválidos para edição do militar.";
+            $errorMsg = "Por favor, selecione uma seção válida para o militar.";
         }
     }
 
-    // --- USUÁRIOS CRUD ---
+    // --- USUÁRIOS: CRIAR NOVO USUÁRIO ---
     elseif ($action === 'add_user') {
-        $usuario = sanitize($_POST['usuario'] ?? '');
-        $senha = $_POST['senha'] ?? '';
+        $saram = sanitize($_POST['saram'] ?? '');
         $nome = sanitize($_POST['nome'] ?? '');
+        $warName = sanitize($_POST['war_name'] ?? '');
+        $grade = sanitize($_POST['grade'] ?? 'SO');
+        $email = sanitize($_POST['email'] ?? '');
+        $senha = $_POST['senha'] ?? '';
         $perfil = sanitize($_POST['perfil'] ?? 'encarregado');
-        $secao = sanitize($_POST['secao'] ?? null);
+        $sectionId = (int)($_POST['section_id'] ?? 1);
+        $escala = (int)($_POST['escala'] ?? 0);
 
-        if (empty($secao)) $secao = null;
+        $isAdmin = ($perfil === 'admin') ? 1 : (($perfil === 'chefia') ? 2 : 0);
 
-        if (!empty($usuario) && !empty($senha) && !empty($nome)) {
+        if (empty($email) && !empty($saram)) {
+            $email = $saram . '@fab.mil.br';
+        }
+
+        if (!empty($saram) && !empty($nome) && !empty($senha)) {
             try {
                 $hash = password_hash($senha, PASSWORD_DEFAULT);
-                $stmt = $db->prepare("INSERT INTO usuarios (usuario, senha_hash, nome, perfil, secao) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$usuario, $hash, $nome, $perfil, $secao]);
-                $successMsg = "Usuário '$usuario' criado com sucesso!";
+                $stmt = $db->prepare("
+                    INSERT INTO users (saram, name, war_name, grade, section_id, email, password, is_admin, escala, person_type, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MILITAR', NOW(), NOW())
+                ");
+                $stmt->execute([$saram, $nome, $warName, $grade, $sectionId, $email, $hash, $isAdmin, $escala]);
+                $successMsg = "Militar/Usuário '$nome' cadastrado com sucesso!";
             } catch (Exception $e) {
-                $errorMsg = "Erro ao criar usuário: " . $e->getMessage();
+                $errorMsg = "Erro ao cadastrar usuário: " . $e->getMessage();
             }
         } else {
-            $errorMsg = "Preencha todos os campos obrigatórios do usuário.";
+            $errorMsg = "Preencha todos os campos obrigatórios (SARAM, Nome, Senha).";
         }
     } 
+
+    // --- USUÁRIOS: EDITAR DADOS ---
     elseif ($action === 'edit_user') {
         $id = (int)($_POST['id'] ?? 0);
-        $usuario = sanitize($_POST['usuario'] ?? '');
+        $saram = sanitize($_POST['saram'] ?? '');
         $nome = sanitize($_POST['nome'] ?? '');
+        $warName = sanitize($_POST['war_name'] ?? '');
+        $grade = sanitize($_POST['grade'] ?? 'SO');
+        $email = sanitize($_POST['email'] ?? '');
         $perfil = sanitize($_POST['perfil'] ?? 'encarregado');
-        $secao = sanitize($_POST['secao'] ?? null);
+        $sectionId = (int)($_POST['section_id'] ?? 1);
+        $escala = (int)($_POST['escala'] ?? 0);
 
-        if (empty($secao)) $secao = null;
+        $isAdmin = ($perfil === 'admin') ? 1 : (($perfil === 'chefia') ? 2 : 0);
 
-        if ($id > 0 && !empty($usuario) && !empty($nome)) {
+        if ($id > 0 && !empty($saram) && !empty($nome)) {
             try {
-                $stmt = $db->prepare("UPDATE usuarios SET usuario = ?, nome = ?, perfil = ?, secao = ? WHERE id = ?");
-                $stmt->execute([$usuario, $nome, $perfil, $secao, $id]);
-                $successMsg = "Dados do usuário '$usuario' atualizados!";
+                $stmt = $db->prepare("
+                    UPDATE users 
+                    SET saram = ?, name = ?, war_name = ?, grade = ?, section_id = ?, email = ?, is_admin = ?, escala = ?, updated_at = NOW() 
+                    WHERE id = ?
+                ");
+                $stmt->execute([$saram, $nome, $warName, $grade, $sectionId, $email, $isAdmin, $escala, $id]);
+                $successMsg = "Dados de '$nome' atualizados com sucesso!";
             } catch (Exception $e) {
                 $errorMsg = "Erro ao atualizar usuário: " . $e->getMessage();
             }
         }
     } 
+
+    // --- USUÁRIOS: ALTERAR SENHA ---
     elseif ($action === 'change_password') {
         $id = (int)($_POST['id'] ?? 0);
         $novaSenha = $_POST['nova_senha'] ?? '';
@@ -85,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id > 0 && !empty($novaSenha)) {
             try {
                 $hash = password_hash($novaSenha, PASSWORD_DEFAULT);
-                $stmt = $db->prepare("UPDATE usuarios SET senha_hash = ? WHERE id = ?");
+                $stmt = $db->prepare("UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?");
                 $stmt->execute([$hash, $id]);
                 $successMsg = "Senha do usuário alterada com sucesso!";
             } catch (PDOException $e) {
@@ -95,36 +115,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errorMsg = "A senha não pode ser vazia.";
         }
     } 
+
+    // --- USUÁRIOS: EXCLUIR / DESATIVAR ---
     elseif ($action === 'delete_user') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id === (int)$user['id']) {
             $errorMsg = "Você não pode excluir a si mesmo.";
         } elseif ($id > 0) {
             try {
-                $stmt = $db->prepare("DELETE FROM usuarios WHERE id = ?");
+                // Soft delete
+                $stmt = $db->prepare("UPDATE users SET deleted_at = NOW() WHERE id = ?");
                 $stmt->execute([$id]);
-                $successMsg = "Usuário excluído com sucesso!";
+                $successMsg = "Militar/Usuário desativado com sucesso!";
             } catch (PDOException $e) {
-                $errorMsg = "Erro ao excluir usuário: " . $e->getMessage();
+                $errorMsg = "Erro ao desativar usuário: " . $e->getMessage();
             }
         }
     }
-
-    // --- REMOVIDO: SEÇÕES CRUD ---
 }
 
 // Carregar listas para exibição
 try {
     $militares = $db->query("
-        SELECT m.*, COALESCE(e.escala, 0) as escala 
-        FROM militares m 
-        LEFT JOIN ctr_escalas e ON m.id = e.militar_id 
-        ORDER BY m.secao ASC, m.nome ASC
+        SELECT u.*, 
+               COALESCE(s.sigla, s.nome, 'Sem Seção') AS secao_nome 
+        FROM users u 
+        LEFT JOIN $secTable s ON u.section_id = s.id 
+        WHERE u.deleted_at IS NULL
+        ORDER BY secao_nome ASC, u.name ASC
     ")->fetchAll();
-    $usuarios = $db->query("SELECT * FROM usuarios ORDER BY perfil ASC, usuario ASC")->fetchAll();
-    $secoesList = $db->query("SELECT DISTINCT secao as nome FROM militares WHERE TRIM(secao) != '' UNION SELECT DISTINCT secao as nome FROM usuarios WHERE TRIM(secao) != '' ORDER BY nome ASC")->fetchAll();
+
+    $secoesList = $db->query("SELECT id, sigla, nome FROM $secTable ORDER BY sigla ASC")->fetchAll();
 } catch (PDOException $e) {
-    die("Erro ao ler dados: " . $e->getMessage());
+    die("Erro ao ler dados do banco: " . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
@@ -357,27 +380,27 @@ try {
         <div class="page-header">
             <div class="page-title">
                 <h2>Painel de Controle e Administração</h2>
-                <p>Gerencie o efetivo do DTCEA-SJ, crie e edite seções e contas de encarregados.</p>
+                <p>Gerencie o efetivo do DTCEA-SJ, atribuições de seções, escalas e permissões.</p>
             </div>
         </div>
 
         <!-- Abas -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab(this, 'tab-efetivo')">Efetivo Militar</button>
-            <button class="tab-btn" onclick="switchTab(this, 'tab-usuarios')">Usuários & Acessos</button>
+            <button class="tab-btn active" onclick="switchTab(this, 'tab-efetivo')">Efetivo Militar (<?= count($militares) ?>)</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-usuarios')">Cadastrar / Editar Usuário</button>
         </div>
 
-        <!-- CONTEÚDO 1: EFETIVO MILITAR (ÁREA AMPLA FULL-WIDTH) -->
+        <!-- CONTEÚDO 1: EFETIVO MILITAR -->
         <div id="tab-efetivo" class="tab-content active">
             <div class="section-card" style="margin-bottom: 0;">
                 <div class="section-title">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <span>Militares Registrados</span>
+                        <span>Militares Cadastrados</span>
                         <span class="section-badge" id="militarBadgeCount"><?= count($militares) ?> Totais</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="text" id="filtroMilitar" placeholder="Buscar militar ou seção..." 
-                               style="padding: 7px 14px; font-size: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: white; outline: none; width: 250px; font-family: inherit;"
+                        <input type="text" id="filtroMilitar" placeholder="Buscar por nome, SARAM ou seção..." 
+                               style="padding: 7px 14px; font-size: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: white; outline: none; width: 280px; font-family: inherit;"
                                oninput="filtrarTabelaMilitares()">
                     </div>
                 </div>
@@ -385,23 +408,25 @@ try {
                     <table class="efetivo-table" id="tabelaMilitares">
                         <thead>
                             <tr>
-                                <th style="width: 40%;">Nome</th>
+                                <th style="width: 15%;">SARAM</th>
+                                <th style="width: 35%;">Posto / Grad / Nome</th>
                                 <th style="width: 20%;">Seção</th>
-                                <th style="width: 20%;">Escala</th>
-                                <th style="width: 20%; text-align: center;">Ações</th>
+                                <th style="width: 15%;">Escala</th>
+                                <th style="width: 15%; text-align: center;">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($militares as $m): ?>
                                 <tr>
+                                    <td><strong><?= htmlspecialchars($m['saram'] ?? '-') ?></strong></td>
                                     <td>
-                                        <strong style="color: var(--primary-dark); font-size: 1rem;"><?= formatarNomeMilitar($m) ?></strong>
-                                        <?php if (!empty($m['nome']) && $m['nome'] !== formatarNomeMilitar($m)): ?>
-                                            <div style="font-size: 0.8rem; color: var(--text-muted);"><?= $m['nome'] ?></div>
+                                        <strong style="color: var(--primary-dark); font-size: 0.95rem;"><?= formatarNomeMilitar($m) ?></strong>
+                                        <?php if (!empty($m['name']) && $m['name'] !== formatarNomeMilitar($m)): ?>
+                                            <div style="font-size: 0.78rem; color: var(--text-muted);"><?= htmlspecialchars($m['name']) ?></div>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge-secao"><?= !empty($m['secao']) ? htmlspecialchars($m['secao']) : '<em>Sem Seção</em>' ?></span>
+                                        <span class="badge-secao"><?= htmlspecialchars($m['secao_nome']) ?></span>
                                     </td>
                                     <td>
                                         <?php if ($m['escala'] == 1): ?>
@@ -411,10 +436,12 @@ try {
                                         <?php endif; ?>
                                     </td>
                                     <td style="text-align: center;">
-                                        <button type="button" class="btn-action-small btn-edit" onclick="editMilitar(<?= $m['id'] ?>, '<?= addslashes(formatarNomeMilitar($m)) ?>', '<?= addslashes($m['secao'] ?? '') ?>', <?= $m['escala'] ?>)">
-                                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                            Definir Seção / Escala
-                                        </button>
+                                        <div class="action-btn-group" style="justify-content: center;">
+                                            <button type="button" class="btn-action-small btn-edit" onclick="editMilitar(<?= $m['id'] ?>, '<?= addslashes(formatarNomeMilitar($m)) ?>', <?= (int)$m['section_id'] ?>, <?= (int)$m['escala'] ?>)">
+                                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                Seção/Escala
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -441,13 +468,17 @@ try {
                     <input type="hidden" name="id" id="militarId" value="">
 
                     <div class="form-group">
-                        <label for="mNome" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Nome do Militar (Gerenciado pelo SGP)</label>
+                        <label for="mNome" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Militar</label>
                         <input type="text" name="nome" id="mNome" class="form-input" readonly style="background-color: var(--border); font-weight: 600; color: var(--primary-dark);">
                     </div>
 
                     <div class="form-group">
-                        <label for="mSecao" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Seção</label>
-                        <input type="text" name="secao" id="mSecao" class="form-input" list="secoesList" style="padding: 10px; text-transform: uppercase;" placeholder="Ex: TWR, SELM, AIS..." required autocomplete="off">
+                        <label for="mSecaoId" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Seção</label>
+                        <select name="section_id" id="mSecaoId" class="form-input" style="padding: 10px;" required>
+                            <?php foreach ($secoesList as $sec): ?>
+                                <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['sigla']) ?> - <?= htmlspecialchars($sec['nome']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="form-group">
@@ -466,49 +497,74 @@ try {
             </div>
         </div>
 
-
-        <!-- CONTEÚDO 3: USUÁRIOS E ACESSOS -->
+        <!-- CONTEÚDO 2: USUÁRIOS E GESTÃO COMPLETA -->
         <div id="tab-usuarios" class="tab-content">
             <div class="admin-flex">
-                <!-- Coluna Esquerda: Cadastro de Usuário e Alteração de Senha -->
+                <!-- Coluna Esquerda: Cadastro / Edição -->
                 <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <!-- Cadastro -->
                     <div class="legend-box" style="height: fit-content; margin-bottom: 0;">
-                        <h3 id="formUserTitle">Criar Novo Usuário</h3>
+                        <h3 id="formUserTitle">Cadastrar Novo Usuário / Militar</h3>
                         <form action="admin.php" method="POST" id="formUser" style="margin-top: 15px;">
                             <input type="hidden" name="action" id="userAction" value="add_user">
                             <input type="hidden" name="id" id="userId" value="">
 
                             <div class="form-group">
-                                <label for="uNome">Nome de Exibição</label>
-                                <input type="text" name="nome" id="uNome" class="form-input" placeholder="Ex: Encarregado TWR" required autocomplete="off">
+                                <label for="uSaram">SARAM</label>
+                                <input type="text" name="saram" id="uSaram" class="form-input" placeholder="Ex: 393.068-8" required autocomplete="off">
                             </div>
 
                             <div class="form-group">
-                                <label for="uUsuario">Nome de Usuário (Login)</label>
-                                <input type="text" name="usuario" id="uUsuario" class="form-input" placeholder="Ex: encarregado_twr" required autocomplete="off">
+                                <label for="uNome">Nome Completo</label>
+                                <input type="text" name="nome" id="uNome" class="form-input" placeholder="Ex: JOAO DA SILVA" required autocomplete="off">
                             </div>
 
-                            <div class="form-group" id="senhaGroup">
-                                <label for="uSenha">Senha</label>
-                                <input type="password" name="senha" id="uSenha" class="form-input" placeholder="Defina a senha" required>
+                            <div class="form-group">
+                                <label for="uWarName">Nome de Guerra</label>
+                                <input type="text" name="war_name" id="uWarName" class="form-input" placeholder="Ex: SILVA" autocomplete="off">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="uGrade">Posto / Graduação</label>
+                                <input type="text" name="grade" id="uGrade" class="form-input" placeholder="Ex: SO, 1S, 2S, 3S, CB, S1, S2, CAP..." required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="uEmail">E-mail</label>
+                                <input type="email" name="email" id="uEmail" class="form-input" placeholder="Ex: saram@fab.mil.br" autocomplete="off">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="uSecao">Seção</label>
+                                <select name="section_id" id="uSecao" class="form-input" style="padding: 10px;" required>
+                                    <?php foreach ($secoesList as $sec): ?>
+                                        <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['sigla']) ?> - <?= htmlspecialchars($sec['nome']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
 
                             <div class="form-group">
                                 <label for="uPerfil">Perfil de Acesso</label>
-                                <select name="perfil" id="uPerfil" class="form-input" style="padding: 10px;" required onchange="toggleSecaoField()">
-                                    <option value="encarregado">Encarregado (Chamada)</option>
-                                    <option value="chefia">Chefia (Chamada + Dashboard)</option>
-                                    <option value="admin">Administrador (Gestão Total)</option>
+                                <select name="perfil" id="uPerfil" class="form-input" style="padding: 10px;" required>
+                                    <option value="encarregado">Encarregado (Lançar chamada de sua seção)</option>
+                                    <option value="chefia">Chefia (Visualizar Painel e Indicadores)</option>
+                                    <option value="admin">Administrador (Acesso total)</option>
                                 </select>
                             </div>
 
-                            <div class="form-group" id="secaoVinculadaGroup">
-                                <label for="uSecao">Seção Vinculada (Exclusivo para Encarregados)</label>
-                                <input type="text" name="secao" id="uSecao" class="form-input" list="secoesList" style="padding: 10px; text-transform: uppercase;" placeholder="Geral (vazio) ou Ex: TWR" autocomplete="off">
+                            <div class="form-group">
+                                <label for="uUserEscala">Tipo de Escala</label>
+                                <select name="escala" id="uUserEscala" class="form-input" style="padding: 10px;" required>
+                                    <option value="0">Expediente Administrativo</option>
+                                    <option value="1">Escala Operacional (TWR / AIS / EMS)</option>
+                                </select>
                             </div>
 
-                            <button type="submit" class="btn-primary" id="btnSubmitUser">Criar Usuário</button>
+                            <div class="form-group" id="senhaGroup">
+                                <label for="uSenha">Senha de Acesso</label>
+                                <input type="password" name="senha" id="uSenha" class="form-input" placeholder="Defina a senha inicial" required>
+                            </div>
+
+                            <button type="submit" class="btn-primary" id="btnSubmitUser">Salvar Cadastro</button>
                             <button type="button" class="btn-logout" id="btnCancelEditUser" style="display: none; width: 100%; margin-top: 10px; color: var(--text)">Cancelar Edição</button>
                         </form>
                     </div>
@@ -521,13 +577,13 @@ try {
                             <input type="hidden" name="id" id="passUserId" value="">
                             
                             <div class="form-group">
-                                <label>Usuário selecionado</label>
+                                <label>Militar selecionado</label>
                                 <input type="text" id="passUserDisplay" class="form-input" style="background-color: var(--border);" readonly>
                             </div>
 
                             <div class="form-group">
                                 <label for="newPass">Nova Senha</label>
-                                <input type="password" name="nova_senha" id="newPass" class="form-input" placeholder="Nova senha" required>
+                                <input type="password" name="nova_senha" id="newPass" class="form-input" placeholder="Digite a nova senha" required minlength="6">
                             </div>
 
                             <button type="submit" class="btn-primary">Gravar Nova Senha</button>
@@ -536,42 +592,44 @@ try {
                     </div>
                 </div>
 
-                <!-- Coluna Direita: Listagem de Usuários -->
+                <!-- Coluna Direita: Listagem e Ações -->
                 <div class="section-card" style="margin-bottom: 0;">
                     <div class="section-title">
-                        <span>Usuários do Sistema</span>
-                        <span class="section-badge"><?= count($usuarios) ?> Contas</span>
+                        <span>Usuários / Militares Registrados</span>
+                        <span class="section-badge"><?= count($militares) ?> Contas</span>
                     </div>
                     <div class="table-responsive">
                         <table class="efetivo-table">
                             <thead>
                                 <tr>
-                                    <th>Nome / Login</th>
+                                    <th>Militar / SARAM</th>
                                     <th>Perfil</th>
-                                    <th>Seção Limitada</th>
+                                    <th>Seção</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($usuarios as $u): ?>
+                                <?php foreach ($militares as $u): 
+                                    $perf = ($u['is_admin'] == 1) ? 'admin' : (($u['is_admin'] == 2) ? 'chefia' : 'encarregado');
+                                ?>
                                     <tr>
                                         <td>
-                                            <strong><?= $u['nome'] ?></strong><br>
-                                            <small style="color: var(--text-muted);">@<?= $u['usuario'] ?></small>
+                                            <strong><?= formatarNomeMilitar($u) ?></strong><br>
+                                            <small style="color: var(--text-muted);"><?= $u['saram'] ?> | <?= $u['email'] ?></small>
                                         </td>
                                         <td>
-                                            <span class="badge-admin-profile <?= $u['perfil'] ?>"><?= $u['perfil'] ?></span>
+                                            <span class="badge-admin-profile <?= $perf ?>"><?= $perf ?></span>
                                         </td>
-                                        <td><?= $u['secao'] ? $u['secao'] : '<em style="color: var(--text-muted);">Nenhuma (Acesso total)</em>' ?></td>
+                                        <td><?= htmlspecialchars($u['secao_nome']) ?></td>
                                         <td>
                                             <div class="action-btn-group">
-                                                <button class="btn-action-small btn-edit" onclick="editUser(<?= $u['id'] ?>, '<?= addslashes($u['nome']) ?>', '<?= addslashes($u['usuario']) ?>', '<?= $u['perfil'] ?>', '<?= addslashes($u['secao']) ?>')">Editar</button>
-                                                <button class="btn-action-small btn-pass" onclick="openPasswordBox(<?= $u['id'] ?>, '<?= addslashes($u['usuario']) ?>')">Senha</button>
+                                                <button class="btn-action-small btn-edit" onclick="editUser(<?= $u['id'] ?>, '<?= addslashes($u['saram'] ?? '') ?>', '<?= addslashes($u['name'] ?? '') ?>', '<?= addslashes($u['war_name'] ?? '') ?>', '<?= addslashes($u['grade'] ?? '') ?>', '<?= addslashes($u['email'] ?? '') ?>', <?= (int)$u['section_id'] ?>, '<?= $perf ?>', <?= (int)$u['escala'] ?>)">Editar</button>
+                                                <button class="btn-action-small btn-pass" onclick="openPasswordBox(<?= $u['id'] ?>, '<?= addslashes(formatarNomeMilitar($u)) ?>')">Senha</button>
                                                 <?php if ((int)$u['id'] !== (int)$user['id']): ?>
-                                                    <form action="admin.php" method="POST" onsubmit="return confirm('Deseja realmente excluir este usuário?');" style="display: inline;">
+                                                    <form action="admin.php" method="POST" onsubmit="return confirm('Deseja realmente desativar este militar?');" style="display: inline;">
                                                         <input type="hidden" name="action" value="delete_user">
                                                         <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                                                        <button type="submit" class="btn-action-small btn-delete">Excluir</button>
+                                                        <button type="submit" class="btn-action-small btn-delete">Desativar</button>
                                                     </form>
                                                 <?php endif; ?>
                                             </div>
@@ -587,13 +645,6 @@ try {
 
     </div>
 
-    <!-- Datalist para autocompletar seções existentes -->
-    <datalist id="secoesList">
-        <?php foreach ($secoesList as $sec): ?>
-            <option value="<?= $sec['nome'] ?>">
-        <?php endforeach; ?>
-    </datalist>
-
     <script>
         // Alternador de Abas
         function switchTab(btn, tabId) {
@@ -604,18 +655,14 @@ try {
             document.getElementById(tabId).classList.add('active');
         }
 
-        // Funções do CRUD de Efetivo (Modal)
-        function editMilitar(id, nome, secao, escala) {
+        // Funções do Modal de Edição de Militar
+        function editMilitar(id, nome, sectionId, escala) {
             const modal = document.getElementById('boxMilitar');
             modal.style.display = 'flex';
             document.getElementById('militarId').value = id;
             document.getElementById('mNome').value = nome;
-            document.getElementById('mSecao').value = secao;
+            document.getElementById('mSecaoId').value = sectionId;
             document.getElementById('mEscala').value = escala;
-            
-            setTimeout(() => {
-                document.getElementById('mSecao').focus();
-            }, 50);
         }
 
         function closeEditMilitar() {
@@ -666,37 +713,29 @@ try {
             }
         }
 
-
         // Funções do CRUD de Usuários
-        function toggleSecaoField() {
-            const perfil = document.getElementById('uPerfil').value;
-            const secaoGroup = document.getElementById('secaoVinculadaGroup');
-            if (perfil === 'encarregado') {
-                secaoGroup.style.display = 'block';
-            } else {
-                secaoGroup.style.display = 'none';
-                document.getElementById('uSecao').value = '';
-            }
-        }
-
-        function editUser(id, nome, usuario, perfil, secao) {
+        function editUser(id, saram, nome, warName, grade, email, sectionId, perfil, escala) {
+            document.querySelectorAll('.tab-btn')[1].click(); // Troca para aba de Usuários
             document.getElementById('userAction').value = 'edit_user';
             document.getElementById('userId').value = id;
+            document.getElementById('uSaram').value = saram;
             document.getElementById('uNome').value = nome;
-            document.getElementById('uUsuario').value = usuario;
+            document.getElementById('uWarName').value = warName;
+            document.getElementById('uGrade').value = grade;
+            document.getElementById('uEmail').value = email;
+            document.getElementById('uSecao').value = sectionId;
             document.getElementById('uPerfil').value = perfil;
-            document.getElementById('uSecao').value = secao;
+            document.getElementById('uUserEscala').value = escala;
             
             // Ocultar campo de senha ao editar dados básicos
             document.getElementById('senhaGroup').style.display = 'none';
             document.getElementById('uSenha').removeAttribute('required');
             
-            document.getElementById('formUserTitle').innerText = 'Editar Usuário';
+            document.getElementById('formUserTitle').innerText = 'Editar Usuário / Militar';
             document.getElementById('btnSubmitUser').innerText = 'Gravar Alterações';
             document.getElementById('btnCancelEditUser').style.display = 'block';
             
-            toggleSecaoField();
-            document.getElementById('uNome').focus();
+            document.getElementById('uSaram').focus();
         }
 
         document.getElementById('btnCancelEditUser').addEventListener('click', () => {
@@ -707,16 +746,16 @@ try {
             document.getElementById('senhaGroup').style.display = 'block';
             document.getElementById('uSenha').setAttribute('required', 'required');
             
-            document.getElementById('formUserTitle').innerText = 'Criar Novo Usuário';
-            document.getElementById('btnSubmitUser').innerText = 'Criar Usuário';
+            document.getElementById('formUserTitle').innerText = 'Cadastrar Novo Usuário / Militar';
+            document.getElementById('btnSubmitUser').innerText = 'Salvar Cadastro';
             document.getElementById('btnCancelEditUser').style.display = 'none';
-            toggleSecaoField();
         });
 
         // Funções de Alteração de Senha
-        function openPasswordBox(id, usuario) {
+        function openPasswordBox(id, militarNome) {
+            document.querySelectorAll('.tab-btn')[1].click();
             document.getElementById('passUserId').value = id;
-            document.getElementById('passUserDisplay').value = usuario;
+            document.getElementById('passUserDisplay').value = militarNome;
             document.getElementById('newPass').value = '';
             document.getElementById('passChangeBox').style.display = 'block';
             document.getElementById('newPass').focus();

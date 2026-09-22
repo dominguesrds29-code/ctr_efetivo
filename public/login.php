@@ -1,6 +1,6 @@
 <?php
 // login.php
-// Tela de Login / Logon para Controle de Efetivo
+// Tela de Login / Logon para Controle de Efetivo (Integrado ao EfetivoSJ)
 
 require_once __DIR__ . '/config.php';
 
@@ -12,29 +12,69 @@ if (isset($_SESSION['user_id'])) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $usuario = sanitize($_POST['usuario'] ?? '');
+    $loginInput = sanitize($_POST['usuario'] ?? '');
     $senha = $_POST['senha'] ?? '';
 
-    if (!empty($usuario) && !empty($senha)) {
-        $stmt = $db->prepare("SELECT * FROM usuarios WHERE usuario = ?");
-        $stmt->execute([$usuario]);
-        $user = $stmt->fetch();
+    if (!empty($loginInput) && !empty($senha)) {
+        try {
+            $secTable = getSecoesTableName($db);
+            $cleanLogin = str_replace(['.', '-', '/', ' '], '', $loginInput);
 
-        if ($user && password_verify($senha, $user['senha_hash'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_usuario'] = $user['usuario'];
-            $_SESSION['user_nome'] = $user['nome'];
-            $_SESSION['user_perfil'] = $user['perfil'];
-            $_SESSION['user_secao'] = $user['secao'];
+            $stmt = $db->prepare("
+                SELECT u.*, 
+                       COALESCE(s.sigla, s.nome, 'Sem Seção') AS secao_nome
+                FROM users u
+                LEFT JOIN $secTable s ON u.section_id = s.id
+                WHERE (
+                    u.saram = ? 
+                    OR REPLACE(REPLACE(REPLACE(u.saram, '.', ''), '-', ''), ' ', '') = ?
+                    OR u.email = ? 
+                    OR u.war_name = ?
+                    OR u.name = ?
+                )
+                AND u.deleted_at IS NULL
+                LIMIT 1
+            ");
+            $stmt->execute([$loginInput, $cleanLogin, $loginInput, $loginInput, $loginInput]);
+            $user = $stmt->fetch();
 
-            if ($user['perfil'] === 'admin') {
-                header("Location: admin.php");
+            if ($user && password_verify($senha, $user['password'])) {
+                // Determinar perfil do usuário
+                $perfil = 'encarregado';
+                if (!empty($user['is_admin']) && (int)$user['is_admin'] === 1) {
+                    $perfil = 'admin';
+                } elseif (!empty($user['is_admin']) && (int)$user['is_admin'] === 2) {
+                    $perfil = 'chefia';
+                } else {
+                    // Verificar se o militar é chefe de alguma seção
+                    $stmtChefe = $db->prepare("SELECT id FROM $secTable WHERE chefe_id = ? LIMIT 1");
+                    $stmtChefe->execute([$user['id']]);
+                    if ($stmtChefe->fetch()) {
+                        $perfil = 'chefia';
+                    }
+                }
+
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_saram'] = $user['saram'];
+                $_SESSION['user_email'] = $user['email'];
+                $_SESSION['user_nome'] = formatarNomeMilitar($user);
+                $_SESSION['user_perfil'] = $perfil;
+                $_SESSION['user_secao_id'] = $user['section_id'];
+                $_SESSION['user_secao'] = $user['secao_nome'];
+
+                if ($perfil === 'admin') {
+                    header("Location: admin.php");
+                } elseif ($perfil === 'chefia') {
+                    header("Location: dashboard.php");
+                } else {
+                    header("Location: index.php");
+                }
+                exit;
             } else {
-                header("Location: index.php");
+                $error = 'SARAM, E-mail ou senha incorretos.';
             }
-            exit;
-        } else {
-            $error = 'Usuário ou senha incorretos.';
+        } catch (PDOException $e) {
+            $error = 'Erro no servidor: ' . $e->getMessage();
         }
     } else {
         $error = 'Por favor, preencha todos os campos.';
@@ -45,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=device-width, initial-scale=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logon - Controle de Efetivo DTCEA-SJ</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -64,13 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form action="login.php" method="POST">
             <div class="form-group">
-                <label for="usuario">Usuário</label>
-                <input type="text" name="usuario" id="usuario" class="form-input" placeholder="Ex: encarregado ou chefe" required autofocus autocomplete="off">
+                <label for="usuario">SARAM ou E-mail FAB</label>
+                <input type="text" name="usuario" id="usuario" class="form-input" placeholder="Ex: 393.068-8 ou email@fab.mil.br" required autofocus autocomplete="off">
             </div>
 
             <div class="form-group">
                 <label for="senha">Senha</label>
-                <input type="password" name="senha" id="senha" class="form-input" placeholder="Sua senha" required>
+                <input type="password" name="senha" id="senha" class="form-input" placeholder="Sua senha do sistema" required>
             </div>
 
             <button type="submit" class="btn-primary">Acessar Sistema</button>
