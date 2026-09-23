@@ -93,6 +93,7 @@ function getSecaoInfo($db) {
 
     $table = 'sections';
     $nameCol = 'name';
+    $codeCol = 'code';
 
     try {
         $tables = $db->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
@@ -105,14 +106,20 @@ function getSecaoInfo($db) {
         $cols = $db->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_COLUMN);
         if (in_array('name', $cols)) {
             $nameCol = 'name';
-        } elseif (in_array('sigla', $cols)) {
-            $nameCol = 'sigla';
         } elseif (in_array('nome', $cols)) {
             $nameCol = 'nome';
+        } elseif (in_array('sigla', $cols)) {
+            $nameCol = 'sigla';
+        }
+
+        if (in_array('code', $cols)) {
+            $codeCol = 'code';
+        } elseif (in_array('sigla', $cols)) {
+            $codeCol = 'sigla';
         }
     } catch (Exception $e) {}
 
-    $info = ['table' => $table, 'name_col' => $nameCol];
+    $info = ['table' => $table, 'name_col' => $nameCol, 'code_col' => $codeCol];
     return $info;
 }
 

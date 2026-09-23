@@ -112,7 +112,7 @@ erDiagram
     *   `nome`: Nome completo do militar.
     *   `nome_guerra`: Nome de guerra utilizado.
     *   `posto_grad`: Posto ou Graduação (ex: SO, 1S, 2S, CB, S1).
-    *   `secao`: Seção atual do militar (ex: SELM, SELT, SSTI, TWR, AIS, EMS).
+    *   `secao`: Seção atual do militar (ex: ELETROMECÂNICA, SSTI, TWR, AIS, EMS).
 2.  **`ctr_escalas`**
     *   `militar_id`: ID do militar (Chave Primária e Estrangeira).
     *   `escala`: Define se o regime é administrativo (`0`) ou escala operacional (`1`).
@@ -139,7 +139,7 @@ O acesso às telas e ações é validado através de níveis hierárquicos armaz
 *   **Encarregado Geral** (Ex: `encarregado`):
     *   Acesso à página principal (`index.php`) para lançar presenças de **qualquer seção**.
     *   Não possui acesso ao Painel da Chefia nem de Administração.
-*   **Encarregado Setorial** (Ex: `encarregado_selm`, `encarregado_selt`):
+*   **Encarregado Setorial** (Ex: `encarregado_secao`):
     *   Restringe o lançamento de presenças e a visualização de militares **exclusivamente para a seção** atribuída ao usuário.
 *   **Chefia** (Ex: `chefe`):
     *   Acesso ao `dashboard.php` para visualizar indicadores de presença diária, militares afastados e estatísticas gerais.

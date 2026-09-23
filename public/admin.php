@@ -169,7 +169,7 @@ try {
         ORDER BY secao_nome ASC, u.name ASC
     ")->fetchAll();
 
-    $secoesList = $db->query("SELECT id, `$secCol` AS nome FROM `$secTable` ORDER BY `$secCol` ASC")->fetchAll();
+    $secoesList = $db->query("SELECT id, `$secCol` AS nome, code FROM `$secTable` ORDER BY id ASC")->fetchAll();
 } catch (PDOException $e) {
     die("Erro ao ler dados do banco: " . $e->getMessage());
 }
@@ -501,7 +501,7 @@ try {
                         <label for="mSecaoId" style="font-weight: 600; color: var(--text); font-size: 0.9rem;">Seção</label>
                         <select name="section_id" id="mSecaoId" class="form-input" style="padding: 10px;" required>
                             <?php foreach ($secoesList as $sec): ?>
-                                <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['nome']) ?></option>
+                                <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['nome']) ?><?= !empty($sec['code']) ? ' (' . htmlspecialchars($sec['code']) . ')' : '' ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -562,7 +562,7 @@ try {
                                 <label for="uSecao">Seção</label>
                                 <select name="section_id" id="uSecao" class="form-input" style="padding: 10px;" required>
                                     <?php foreach ($secoesList as $sec): ?>
-                                        <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['nome']) ?></option>
+                                        <option value="<?= $sec['id'] ?>"><?= htmlspecialchars($sec['nome']) ?><?= !empty($sec['code']) ? ' (' . htmlspecialchars($sec['code']) . ')' : '' ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>

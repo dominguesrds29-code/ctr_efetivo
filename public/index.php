@@ -18,9 +18,10 @@ try {
     $filterExpediente = "
         AND u.escala = 0 
         AND u.section_id IS NOT NULL 
-        AND u.section_id > 0
+        AND u.section_id > 1
         AND s.id IS NOT NULL
-        AND TRIM(COALESCE(s.`$secCol`, '')) NOT IN ('Torre de Controle', 'TWR', 'EMS', 'EMS1', 'Sala AIS', 'AIS', 'Sem Seção', '')
+        AND s.id NOT IN (1, 8, 10, 11)
+        AND TRIM(COALESCE(s.`$secCol`, '')) NOT IN ('Torre de Controle', 'TORRE DE CONTROLE', 'TWR', 'EMS', 'EMS1', 'EMS-1 / CMA-2', 'Sala AIS', 'SALA AIS', 'AIS', 'Sem Seção', '')
     ";
 
     if (!empty($user['secao']) && $user['perfil'] === 'encarregado') {
