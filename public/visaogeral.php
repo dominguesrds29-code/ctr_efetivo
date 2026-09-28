@@ -387,6 +387,16 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
         await fetchPersonnel();
     }
 
+    // Auxiliar de Formatação de CPF
+    function formatCPF(cpfStr) {
+        if (!cpfStr) return '-';
+        const digits = String(cpfStr).replace(/\D/g, '');
+        if (digits.length === 11) {
+            return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+        return cpfStr;
+    }
+
     // Auxiliar de Data
     function parseDateString(dateStr) {
         if (!dateStr) return null;
@@ -732,7 +742,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                 <td>${p.specialty || '-'}</td>
                 <td>${secaoDisplay}</td>
                 <td>${p.identity || '-'}</td>
-                <td>${p.cpf || '-'}</td>
+                <td>${formatCPF(p.cpf)}</td>
                 <td>${p.serviceTime || '-'}</td>
                 <td>${reserveText}</td>
                 <td>${p.timeDtceaSj || '-'}</td>
@@ -844,6 +854,22 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
         if (birthInput) birthInput.addEventListener('input', triggerRecalculatePreview);
         if (pracaInput) pracaInput.addEventListener('input', triggerRecalculatePreview);
         if (presInput) presInput.addEventListener('input', triggerRecalculatePreview);
+
+        // Máscara automática de CPF
+        const cpfInput = document.getElementById('field-cpf');
+        if (cpfInput) {
+            cpfInput.addEventListener('input', (e) => {
+                let v = e.target.value.replace(/\D/g, '').substring(0, 11);
+                if (v.length > 9) {
+                    v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+                } else if (v.length > 6) {
+                    v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+                } else if (v.length > 3) {
+                    v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+                }
+                e.target.value = v;
+            });
+        }
     }
 
     function openAddModal() {
@@ -876,7 +902,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
         document.getElementById('field-name').value = p.name;
         document.getElementById('field-warName').value = p.warName || '';
         document.getElementById('field-identity').value = p.identity || '';
-        document.getElementById('field-cpf').value = p.cpf || '';
+        document.getElementById('field-cpf').value = formatCPF(p.cpf) !== '-' ? formatCPF(p.cpf) : '';
         document.getElementById('field-saram').value = p.saram || '';
         document.getElementById('field-birthDate').value = p.birthDate || '';
         document.getElementById('field-age').value = p.age || '';
