@@ -107,6 +107,12 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                     <input type="text" id="search-input" class="search-input" placeholder="Buscar por Nome, SARAM, CPF, Identidade, Especialidade...">
                 </div>
 
+                <select id="filter-status" class="filter-select" style="font-weight: 700; color: var(--primary);">
+                    <option value="ACTIVE" selected>Status: Ativos</option>
+                    <option value="INACTIVE">Status: Desativados</option>
+                    <option value="ALL">Status: Todos (Geral)</option>
+                </select>
+
                 <select id="filter-type" class="filter-select">
                     <option value="MILITAR" selected>Militares</option>
                     <option value="CIVIL">Civis</option>
@@ -550,7 +556,9 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                         prorrogacaoDate: item.prorrogacao,
                         observations: item.observacoes,
                         is_admin: item.is_admin,
-                        personType: item.person_type
+                        personType: item.person_type,
+                        isActive: (item.is_active !== false),
+                        deletedAt: item.deleted_at || null
                     };
                     recalculateItemFields(p);
                     return p;
@@ -568,12 +576,13 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
     }
 
     function renderDashboard() {
-        const totalCount = personnelData.length;
+        const activePersonnel = personnelData.filter(p => p.isActive);
+        const totalCount = activePersonnel.length;
         document.getElementById('dash-total').innerText = totalCount;
 
         let expiredInspections = 0;
         let warningInspections = 0;
-        personnelData.forEach(p => {
+        activePersonnel.forEach(p => {
             if (p.healthInspectionObs === 'EXPIRED' || p.healthInspectionObs === 'NOT_DONE') {
                 expiredInspections++;
             } else if (p.healthInspectionObs === 'WARNING') {
@@ -594,13 +603,13 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
             inspDetailEl.innerText = "Tudo em conformidade";
         }
 
-        const activeReserves = personnelData.filter(p => p.timeToReserve !== null && p.timeToReserve <= 3).length;
+        const activeReserves = activePersonnel.filter(p => p.timeToReserve !== null && p.timeToReserve <= 3).length;
         document.getElementById('dash-reserves').innerText = activeReserves;
         document.getElementById('dash-reserves-detail').innerText = `${activeReserves} militares c/ menos de 3 anos`;
 
         let totalSjMonths = 0;
         let validCount = 0;
-        personnelData.forEach(p => {
+        activePersonnel.forEach(p => {
             if (p.presentationDate) {
                 const diff = calculateDateDifference(p.presentationDate, new Date());
                 totalSjMonths += (diff.years * 12) + diff.months;
@@ -617,6 +626,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
 
         const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
         const cleanQuery = searchQuery.replace(/[\.\-\/\s]/g, '');
+        const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : 'ACTIVE';
         const rankFilter = document.getElementById('filter-rank').value;
         const specialtyFilter = document.getElementById('filter-specialty').value;
         const healthFilter = document.getElementById('filter-health').value;
@@ -657,6 +667,10 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                     pWar.includes(cleanQuery)
                 ));
 
+            const matchStatus = (statusFilter === 'ALL') ||
+                                (statusFilter === 'ACTIVE' && p.isActive) ||
+                                (statusFilter === 'INACTIVE' && !p.isActive);
+
             const matchRank = !rankFilter || p.rank === rankFilter;
             const matchSpecialty = !specialtyFilter || p.specialty === specialtyFilter;
             const matchType = typeFilter === 'TODOS' || p.personType === typeFilter;
@@ -675,7 +689,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                 if (reserveFilter === 'LONG') matchReserve = p.timeToReserve !== null && p.timeToReserve > 5;
             }
 
-            return matchSearch && matchRank && matchSpecialty && matchHealth && matchReserve && matchType;
+            return matchSearch && matchStatus && matchRank && matchSpecialty && matchHealth && matchReserve && matchType;
         });
 
         document.getElementById('table-count-badge').innerText = `${filtered.length} Registros`;
@@ -684,7 +698,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
             tbody.innerHTML = `
                 <tr>
                     <td colspan="${isAdmin ? 12 : 11}" style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
-                        Nenhum militar localizado com os filtros selecionados.
+                        Nenhum registro localizado com os filtros selecionados.
                     </td>
                 </tr>
             `;
@@ -695,6 +709,9 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
             const tr = document.createElement('tr');
             if (p.prorrogacaoWarning) {
                 tr.classList.add('row-prorrogacao-warning');
+            }
+            if (!p.isActive) {
+                tr.classList.add('row-inactive');
             }
 
             let healthCell = '';
@@ -716,20 +733,34 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
 
             let actionsCell = '';
             if (isAdmin) {
-                actionsCell = `
-                    <td style="text-align: center;">
-                        <button class="btn-icon" onclick="editPerson('${p.id}')" title="Editar Ficha">
-                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </button>
-                        <button class="btn-icon delete" onclick="deletePerson('${p.id}')" title="Excluir">
-                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                    </td>
-                `;
+                if (p.isActive) {
+                    actionsCell = `
+                        <td style="text-align: center;">
+                            <button class="btn-icon" onclick="editPerson('${p.id}')" title="Editar Ficha">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button class="btn-icon delete" onclick="inactivatePerson('${p.id}')" title="Desativar Militar">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                            </button>
+                        </td>
+                    `;
+                } else {
+                    actionsCell = `
+                        <td style="text-align: center;">
+                            <button class="btn-icon" onclick="editPerson('${p.id}')" title="Visualizar / Editar Ficha">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button class="btn-icon activate" onclick="reactivatePerson('${p.id}')" title="Reativar no Efetivo Ativo">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            </button>
+                        </td>
+                    `;
+                }
             }
 
             const warOrName = p.warName && p.warName !== '-' ? p.warName : p.name;
             const postoGradNome = `${p.rank ? p.rank + ' ' : ''}${warOrName}`.trim();
+            const inactiveBadge = !p.isActive ? '<span class="badge-inactive">DESATIVADO</span>' : '';
             const fullNameSub = (p.name && p.name !== postoGradNome) ? `<div style="font-size: 0.67rem; color: var(--text-muted); text-transform: uppercase;">${p.name}</div>` : '';
             const secaoDisplay = p.secao_nome || p.secao || '-';
 
@@ -737,6 +768,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                 <td><strong>${p.saram || '-'}</strong></td>
                 <td class="col-posto-nome">
                     <strong style="color: var(--primary-dark); font-size: 0.81rem;">${postoGradNome}</strong>
+                    ${inactiveBadge}
                     ${fullNameSub}
                 </td>
                 <td>${p.specialty || '-'}</td>
@@ -782,6 +814,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
 
     function setupEventListeners() {
         document.getElementById('search-input').addEventListener('input', renderTable);
+        if (document.getElementById('filter-status')) document.getElementById('filter-status').addEventListener('change', renderTable);
         document.getElementById('filter-rank').addEventListener('change', renderTable);
         document.getElementById('filter-specialty').addEventListener('change', renderTable);
         document.getElementById('filter-health').addEventListener('change', renderTable);
@@ -892,7 +925,8 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
 
         document.getElementById('modal-action').value = 'edit';
         document.getElementById('modal-edit-id').value = id;
-        document.getElementById('person-modal-title').innerText = `Editar Ficha - ${p.rank} ${p.specialty || ''} ${p.name}`;
+        const statusLabel = !p.isActive ? " (DESATIVADO)" : "";
+        document.getElementById('person-modal-title').innerText = `Ficha - ${p.rank} ${p.specialty || ''} ${p.name}${statusLabel}`;
 
         document.getElementById('field-id').value = p.id;
         document.getElementById('field-personType').value = p.personType || 'MILITAR';
@@ -972,6 +1006,15 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
             if (result.success) {
                 await fetchPersonnel();
                 return true;
+            } else if (result.is_inactive_conflict && result.inactive_id) {
+                if (confirm(`${result.message}\n\nDeseja REATIVAR a ficha deste militar no efetivo agora?`)) {
+                    await reactivatePerson(result.inactive_id, false);
+                    document.getElementById('filter-status').value = 'ALL';
+                    await fetchPersonnel();
+                    editPerson(result.inactive_id);
+                    return true;
+                }
+                return false;
             } else {
                 const errorMsg = result.message || result.error || 'Erro desconhecido ao processar requisição.';
                 alert("Erro ao salvar: " + errorMsg);
@@ -989,13 +1032,13 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
         }
     }
 
-    async function deletePerson(id) {
+    async function inactivatePerson(id) {
         const p = personnelData.find(item => item.id == id);
         if (!p) return;
 
-        if (confirm(`Deseja realmente desativar o militar ${p.rank} ${p.name} da base de dados?`)) {
+        if (confirm(`Deseja realmente DESATIVAR o militar ${p.rank} ${p.name}?\n\nEle não constará mais nas chamadas diárias e no efetivo ativo, mas suas informações ficarão preservadas para consulta no filtro "Desativados".`)) {
             try {
-                const response = await fetch('api.php?action=delete_person', {
+                const response = await fetch('api.php?action=inactivate_person', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
@@ -1004,12 +1047,37 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                 if (result.success) {
                     await fetchPersonnel();
                 } else {
-                    const errorMsg = result.message || result.error || 'Erro ao excluir.';
-                    alert("Erro ao excluir: " + errorMsg);
+                    const errorMsg = result.message || result.error || 'Erro ao desativar.';
+                    alert("Erro ao desativar: " + errorMsg);
                 }
             } catch (e) {
                 console.error(e);
-                alert("Erro de comunicação ao excluir militar: " + e.message);
+                alert("Erro de comunicação ao desativar militar: " + e.message);
+            }
+        }
+    }
+
+    async function reactivatePerson(id, showConfirm = true) {
+        const p = personnelData.find(item => item.id == id);
+        const name = p ? `${p.rank} ${p.name}` : 'o militar';
+
+        if (!showConfirm || confirm(`Deseja REATIVAR ${name} no efetivo ativo?`)) {
+            try {
+                const response = await fetch('api.php?action=reactivate_person', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    await fetchPersonnel();
+                } else {
+                    const errorMsg = result.message || result.error || 'Erro ao reativar.';
+                    alert("Erro ao reativar: " + errorMsg);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erro de comunicação ao reativar militar: " + e.message);
             }
         }
     }

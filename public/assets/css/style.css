@@ -754,6 +754,39 @@ body {
     color: var(--danger);
 }
 
+.btn-icon.activate {
+    color: #16A34A;
+}
+
+.btn-icon.activate:hover {
+    background-color: #DCFCE7;
+    color: #15803D;
+}
+
+.badge-inactive {
+    background: #FEE2E2;
+    color: #991B1B;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-left: 5px;
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+    border: 1px solid #FECACA;
+}
+
+.row-inactive {
+    background-color: #F8FAFC !important;
+    opacity: 0.78;
+}
+
+.row-inactive:hover {
+    background-color: #F1F5F9 !important;
+    opacity: 1;
+}
+
 /* Badges Visão Geral */
 .rank-badge {
     background-color: var(--primary);

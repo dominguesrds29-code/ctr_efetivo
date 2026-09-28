@@ -59,8 +59,7 @@ try {
                    COALESCE(s.`$secCol`, 'Sem Seção') AS secao_nome
             FROM users u 
             LEFT JOIN `$secTable` s ON u.section_id = s.id 
-            WHERE u.deleted_at IS NULL 
-            ORDER BY u.name ASC
+            ORDER BY (u.deleted_at IS NOT NULL) ASC, u.name ASC
         ");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -86,7 +85,9 @@ try {
                 'prorrogacao' => formatSQLToDate($row['prorrogacao'] ?? ''),
                 'observacoes' => $row['observacoes'] ?? '',
                 'is_admin' => (int)($row['is_admin'] ?? 0),
-                'person_type' => !empty($row['person_type']) ? $row['person_type'] : 'MILITAR'
+                'person_type' => !empty($row['person_type']) ? $row['person_type'] : 'MILITAR',
+                'is_active' => ($row['deleted_at'] === null),
+                'deleted_at' => !empty($row['deleted_at']) ? formatSQLToDate($row['deleted_at']) : null
             ];
         }
 
@@ -204,6 +205,50 @@ try {
             echo json_encode(['success' => true, 'message' => 'Ficha do militar atualizada com sucesso!', 'id' => $id]);
             exit;
         } else {
+            // Verificar se já existe cadastro (ativo ou desativado) por SARAM, CPF ou Nome
+            $cleanSaram = preg_replace('/[\.\-\s\/]/', '', $saram);
+            $cleanCpf = preg_replace('/[\.\-\s\/]/', '', $cpf);
+
+            $checkStmt = $db->prepare("
+                SELECT id, name, grade, specialty, saram, cpf, deleted_at 
+                FROM users 
+                WHERE (
+                    (? != '' AND (saram = ? OR REPLACE(REPLACE(REPLACE(saram, '.', ''), '-', ''), ' ', '') = ?))
+                    OR (? != '' AND (cpf = ? OR REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), ' ', '') = ?))
+                    OR (name = ?)
+                )
+                LIMIT 1
+            ");
+            $checkStmt->execute([
+                $saram, $saram, $cleanSaram,
+                $cpf, $cpf, $cleanCpf,
+                $name
+            ]);
+            $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                if ($existing['deleted_at'] !== null) {
+                    http_response_code(409);
+                    echo json_encode([
+                        'success' => false,
+                        'is_inactive_conflict' => true,
+                        'inactive_id' => (int)$existing['id'],
+                        'inactive_name' => "{$existing['grade']} {$existing['name']}",
+                        'message' => "O militar {$existing['grade']} {$existing['name']} (SARAM: {$existing['saram']}) já possui cadastro no sistema, porém encontra-se DESATIVADO. Utilize o filtro de 'Desativados' para visualizá-lo e reativá-lo.",
+                        'error' => "Cadastro já existente e desativado"
+                    ]);
+                    exit;
+                } else {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => "Já existe um militar ativo cadastrado com este SARAM/CPF ou Nome: {$existing['grade']} {$existing['name']}.",
+                        'error' => "Militar já cadastrado"
+                    ]);
+                    exit;
+                }
+            }
+
             // Inserir novo militar
             $email = !empty($saram) ? $saram . '@fab.mil.br' : uniqid('militar_') . '@fab.mil.br';
             $passwordHash = password_hash('123456', PASSWORD_DEFAULT);
@@ -235,12 +280,12 @@ try {
     }
 
     // -------------------------------------------------------------
-    // 4. EXCLUIR MILITAR (SOFT DELETE)
+    // 4. DESATIVAR MILITAR (SOFT DELETE)
     // -------------------------------------------------------------
-    elseif ($action === 'delete_person' || ($action === 'delete' && $_SERVER['REQUEST_METHOD'] === 'POST')) {
+    elseif ($action === 'delete_person' || $action === 'inactivate_person' || ($action === 'delete' && $_SERVER['REQUEST_METHOD'] === 'POST')) {
         if (!$isAdmin) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Acesso negado. Apenas administradores podem excluir registros.']);
+            echo json_encode(['success' => false, 'message' => 'Acesso negado. Apenas administradores podem desativar registros.', 'error' => 'Acesso negado']);
             exit;
         }
 
@@ -249,20 +294,46 @@ try {
 
         if ($id <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'ID inválido para exclusão.']);
+            echo json_encode(['success' => false, 'message' => 'ID inválido para desativação.', 'error' => 'ID inválido']);
             exit;
         }
 
         if ($id === (int)$user['id']) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Você não pode excluir sua própria conta conectada.']);
+            echo json_encode(['success' => false, 'message' => 'Você não pode desativar sua própria conta conectada.', 'error' => 'Auto-desativação proibida']);
             exit;
         }
 
-        $stmt = $db->prepare("UPDATE users SET deleted_at = NOW() WHERE id = ?");
+        $stmt = $db->prepare("UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = ?");
         $stmt->execute([$id]);
 
-        echo json_encode(['success' => true, 'message' => 'Militar desativado da base de dados com sucesso.']);
+        echo json_encode(['success' => true, 'message' => 'Militar desativado com sucesso. As informações continuam salvas para consulta no filtro de desativados.']);
+        exit;
+    }
+
+    // -------------------------------------------------------------
+    // 4.1 REATIVAR MILITAR
+    // -------------------------------------------------------------
+    elseif ($action === 'reactivate_person' || $action === 'activate_person') {
+        if (!$isAdmin) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Acesso negado. Apenas administradores podem reativar registros.', 'error' => 'Acesso negado']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $id = (int)($data['id'] ?? 0);
+
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID inválido para reativação.', 'error' => 'ID inválido']);
+            exit;
+        }
+
+        $stmt = $db->prepare("UPDATE users SET deleted_at = NULL, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$id]);
+
+        echo json_encode(['success' => true, 'message' => 'Militar reativado no efetivo ativo com sucesso!']);
         exit;
     }
 
