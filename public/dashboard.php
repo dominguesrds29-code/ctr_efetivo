@@ -158,7 +158,7 @@ try {
         <!-- Cabeçalho da Página -->
         <div class="page-header">
             <div class="page-title">
-                <h2>Painel Estratégico do Efetivo</h2>
+                <h2>Painel do Efetivo</h2>
                 <p>Análise consolidada e taxas de presença do efetivo militar do expediente por seção.</p>
             </div>
             <form action="dashboard.php" method="GET" class="date-selector">
