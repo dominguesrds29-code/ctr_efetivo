@@ -8,20 +8,28 @@ header('Content-Type: application/json; charset=UTF-8');
 
 if (!isLoggedIn()) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Não autorizado']);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Sessão expirada ou não autenticada. Por favor, faça login novamente.',
+        'error' => 'Não autorizado'
+    ]);
     exit;
 }
 
 $action = $_GET['action'] ?? '';
 $user = getCurrentUser();
-$isAdmin = ($user && $user['perfil'] === 'admin');
+$isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
 
 function formatDateToSQL($dateStr) {
     if (empty($dateStr)) return null;
     $dateStr = trim($dateStr);
+    if ($dateStr === '-' || $dateStr === 'N/A' || $dateStr === 'null' || $dateStr === 'undefined') return null;
     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) return $dateStr;
-    if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $dateStr, $matches)) {
+    if (preg_match('/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/', $dateStr, $matches)) {
         return sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+    }
+    if (preg_match('/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/', $dateStr, $matches)) {
+        return sprintf('%04d-%02d-%02d', $matches[1], $matches[2], $matches[3]);
     }
     return null;
 }
@@ -346,7 +354,7 @@ try {
 
         if (empty($date)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Data inválida']);
+            echo json_encode(['success' => false, 'message' => 'Data inválida.', 'error' => 'Data inválida']);
             exit;
         }
 
@@ -376,7 +384,7 @@ try {
 
         if ($militarId <= 0 || empty($status) || empty($dateStart) || empty($dateEnd)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Parâmetros inválidos']);
+            echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.', 'error' => 'Parâmetros inválidos']);
             exit;
         }
 
@@ -385,7 +393,7 @@ try {
         
         if ($start > $end) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Data de início deve ser anterior ou igual à data de término']);
+            echo json_encode(['success' => false, 'message' => 'Data de início deve ser anterior ou igual à data de término.', 'error' => 'Data de início deve ser anterior ou igual à data de término']);
             exit;
         }
 
@@ -411,10 +419,14 @@ try {
         $db->rollBack();
     }
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erro interno no servidor: ' . $e->getMessage()]);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Erro interno no servidor: ' . $e->getMessage(),
+        'error' => $e->getMessage()
+    ]);
     exit;
 }
 
 http_response_code(404);
-echo json_encode(['success' => false, 'error' => 'Ação não encontrada']);
+echo json_encode(['success' => false, 'message' => 'Ação não encontrada.', 'error' => 'Ação não encontrada']);
 exit;

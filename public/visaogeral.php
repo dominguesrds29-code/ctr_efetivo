@@ -6,7 +6,7 @@ require_once __DIR__ . '/auth.php';
 requireLogin();
 
 $user = getCurrentUser();
-$isAdmin = ($user['perfil'] === 'admin');
+$isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -729,8 +729,8 @@ $isAdmin = ($user['perfil'] === 'admin');
                     <strong style="color: var(--primary-dark); font-size: 0.88rem;">${postoGradNome}</strong>
                     ${fullNameSub}
                 </td>
-                <td><span class="specialty-badge">${p.specialty || '-'}</span></td>
-                <td><span class="badge-secao">${secaoDisplay}</span></td>
+                <td>${p.specialty || '-'}</td>
+                <td>${secaoDisplay}</td>
                 <td>${p.identity || '-'}</td>
                 <td>${p.cpf || '-'}</td>
                 <td>${p.serviceTime || '-'}</td>
@@ -796,8 +796,10 @@ $isAdmin = ($user['perfil'] === 'admin');
         if (personForm) {
             personForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                await savePerson();
-                closeModal();
+                const ok = await savePerson();
+                if (ok) {
+                    closeModal();
+                }
             });
         }
 
@@ -920,11 +922,18 @@ $isAdmin = ($user['perfil'] === 'admin');
 
         if (!payload.secao) {
             alert("A Seção é obrigatória. Por favor, selecione uma seção.");
-            return;
+            return false;
         }
 
         if (action === 'edit') {
             payload.id = editId;
+        }
+
+        const submitBtn = document.querySelector('#person-form button[type="submit"]');
+        const originalText = submitBtn ? submitBtn.innerText : 'Salvar';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Salvando...';
         }
 
         try {
@@ -936,12 +945,21 @@ $isAdmin = ($user['perfil'] === 'admin');
             const result = await response.json();
             if (result.success) {
                 await fetchPersonnel();
+                return true;
             } else {
-                alert("Erro ao salvar: " + result.message);
+                const errorMsg = result.message || result.error || 'Erro desconhecido ao processar requisição.';
+                alert("Erro ao salvar: " + errorMsg);
+                return false;
             }
         } catch (e) {
             console.error(e);
-            alert("Erro de comunicação ao salvar militar.");
+            alert("Erro de comunicação ao salvar militar: " + e.message);
+            return false;
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+            }
         }
     }
 
@@ -960,11 +978,12 @@ $isAdmin = ($user['perfil'] === 'admin');
                 if (result.success) {
                     await fetchPersonnel();
                 } else {
-                    alert("Erro ao excluir: " + result.message);
+                    const errorMsg = result.message || result.error || 'Erro ao excluir.';
+                    alert("Erro ao excluir: " + errorMsg);
                 }
             } catch (e) {
                 console.error(e);
-                alert("Erro de comunicação ao excluir militar.");
+                alert("Erro de comunicação ao excluir militar: " + e.message);
             }
         }
     }
@@ -1131,11 +1150,11 @@ $isAdmin = ($user['perfil'] === 'admin');
                 await fetchSecoes();
                 renderSecoesTable();
             } else {
-                alert("Erro: " + result.message);
+                alert("Erro: " + (result.message || result.error || 'Falha ao salvar seção.'));
             }
         } catch (e) {
             console.error(e);
-            alert("Erro de comunicação ao salvar seção.");
+            alert("Erro de comunicação ao salvar seção: " + e.message);
         }
     }
 
@@ -1152,11 +1171,11 @@ $isAdmin = ($user['perfil'] === 'admin');
                     await fetchSecoes();
                     renderSecoesTable();
                 } else {
-                    alert("Erro: " + result.message);
+                    alert("Erro: " + (result.message || result.error || 'Falha ao excluir seção.'));
                 }
             } catch (e) {
                 console.error(e);
-                alert("Erro de comunicação ao excluir seção.");
+                alert("Erro de comunicação ao excluir seção: " + e.message);
             }
         }
     }
