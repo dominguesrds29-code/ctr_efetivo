@@ -168,14 +168,12 @@ $isAdmin = ($user['perfil'] === 'admin');
                 <table class="efetivo-table" id="personnel-table">
                     <thead>
                         <tr>
-                            <th>Posto/Grad</th>
+                            <th style="min-width: 110px;">SARAM</th>
+                            <th style="min-width: 220px;">Posto / Grad / Nome</th>
                             <th>Especialidade</th>
                             <th>Seção</th>
-                            <th>Nome Completo</th>
-                            <th>Nome de Guerra</th>
                             <th>Identidade</th>
                             <th>CPF</th>
-                            <th>SARAM</th>
                             <th>Tempo Serviço</th>
                             <th>Para Reserva</th>
                             <th>Tempo DTCEA-SJ</th>
@@ -188,7 +186,7 @@ $isAdmin = ($user['perfil'] === 'admin');
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="<?= $isAdmin ? 14 : 13 ?>" style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
+                            <td colspan="<?= $isAdmin ? 12 : 11 ?>" style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
                                 Carregando dados da base efetivosj...
                             </td>
                         </tr>
@@ -612,6 +610,7 @@ $isAdmin = ($user['perfil'] === 'admin');
         tbody.innerHTML = '';
 
         const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+        const cleanQuery = searchQuery.replace(/[\.\-\/\s]/g, '');
         const rankFilter = document.getElementById('filter-rank').value;
         const specialtyFilter = document.getElementById('filter-specialty').value;
         const healthFilter = document.getElementById('filter-health').value;
@@ -619,13 +618,38 @@ $isAdmin = ($user['perfil'] === 'admin');
         const typeFilter = document.getElementById('filter-type').value;
 
         const filtered = personnelData.filter(p => {
+            const pName = (p.name || '').toLowerCase();
+            const pWar = (p.warName || '').toLowerCase();
+            const pRank = (p.rank || '').toLowerCase();
+            const pSpec = (p.specialty || '').toLowerCase();
+            const pSecao = (p.secao || '').toLowerCase();
+            const pSecaoNome = (p.secao_nome || '').toLowerCase();
+            const pSaram = (p.saram || '').toLowerCase();
+            const pCpf = (p.cpf || '').toLowerCase();
+            const pIdentity = (p.identity || '').toLowerCase();
+            const pPostoNome = `${pRank} ${pWar} ${pName}`.toLowerCase();
+
+            const cleanSaram = pSaram.replace(/[\.\-\/\s]/g, '');
+            const cleanCpf = pCpf.replace(/[\.\-\/\s]/g, '');
+            const cleanIdentity = pIdentity.replace(/[\.\-\/\s]/g, '');
+
             const matchSearch = !searchQuery || 
-                (p.name || '').toLowerCase().includes(searchQuery) ||
-                (p.warName || '').toLowerCase().includes(searchQuery) ||
-                (p.specialty || '').toLowerCase().includes(searchQuery) ||
-                (p.identity || '').toLowerCase().includes(searchQuery) ||
-                (p.cpf || '').toLowerCase().includes(searchQuery) ||
-                (p.saram || '').toLowerCase().includes(searchQuery);
+                pName.includes(searchQuery) ||
+                pWar.includes(searchQuery) ||
+                pPostoNome.includes(searchQuery) ||
+                pSpec.includes(searchQuery) ||
+                pSecao.includes(searchQuery) ||
+                pSecaoNome.includes(searchQuery) ||
+                pIdentity.includes(searchQuery) ||
+                pCpf.includes(searchQuery) ||
+                pSaram.includes(searchQuery) ||
+                (cleanQuery && (
+                    cleanSaram.includes(cleanQuery) ||
+                    cleanCpf.includes(cleanQuery) ||
+                    cleanIdentity.includes(cleanQuery) ||
+                    pName.includes(cleanQuery) ||
+                    pWar.includes(cleanQuery)
+                ));
 
             const matchRank = !rankFilter || p.rank === rankFilter;
             const matchSpecialty = !specialtyFilter || p.specialty === specialtyFilter;
@@ -653,7 +677,7 @@ $isAdmin = ($user['perfil'] === 'admin');
         if (filtered.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="${isAdmin ? 14 : 13}" style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
+                    <td colspan="${isAdmin ? 12 : 11}" style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
                         Nenhum militar localizado com os filtros selecionados.
                     </td>
                 </tr>
@@ -698,15 +722,21 @@ $isAdmin = ($user['perfil'] === 'admin');
                 `;
             }
 
+            const warOrName = p.warName && p.warName !== '-' ? p.warName : p.name;
+            const postoGradNome = `${p.rank ? p.rank + ' ' : ''}${warOrName}`.trim();
+            const fullNameSub = (p.name && p.name !== postoGradNome) ? `<div style="font-size: 0.78rem; color: var(--text-muted);">${p.name}</div>` : '';
+            const secaoDisplay = p.secao_nome || p.secao || '-';
+
             tr.innerHTML = `
-                <td><span class="rank-badge">${p.rank}</span></td>
+                <td><strong>${p.saram || '-'}</strong></td>
+                <td>
+                    <strong style="color: var(--primary-dark); font-size: 0.95rem;">${postoGradNome}</strong>
+                    ${fullNameSub}
+                </td>
                 <td><span class="specialty-badge">${p.specialty || '-'}</span></td>
-                <td><span class="specialty-badge">${p.secao || '-'}</span></td>
-                <td style="font-weight: 600; color: var(--primary-dark);">${p.name}</td>
-                <td style="font-weight: 700;">${p.warName || '-'}</td>
+                <td><span class="badge-secao">${secaoDisplay}</span></td>
                 <td>${p.identity || '-'}</td>
                 <td>${p.cpf || '-'}</td>
-                <td>${p.saram || '-'}</td>
                 <td>${p.serviceTime || '-'}</td>
                 <td>${reserveText}</td>
                 <td>${p.timeDtceaSj || '-'}</td>

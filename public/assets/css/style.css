@@ -777,6 +777,17 @@ body {
     display: inline-block;
 }
 
+.badge-secao {
+    display: inline-block;
+    padding: 4px 10px;
+    background-color: #EDF2F7;
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+
 .health-badge {
     display: inline-flex;
     align-items: center;
