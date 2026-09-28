@@ -263,7 +263,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                         <!-- Administrativo -->
                         <div class="form-group">
                             <label for="field-birthDate">Data de Nascimento</label>
-                            <input type="text" id="field-birthDate" class="form-control" placeholder="DD/MM/AAAA" required>
+                            <input type="text" id="field-birthDate" class="form-control" placeholder="DD/MM/AAAA">
                         </div>
                         <div class="form-group">
                             <label for="field-age">Idade (Cálculo Automático)</label>
@@ -271,7 +271,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                         </div>
                         <div class="form-group">
                             <label for="field-pracaDate">Data de Praça</label>
-                            <input type="text" id="field-pracaDate" class="form-control" placeholder="DD/MM/AAAA" required>
+                            <input type="text" id="field-pracaDate" class="form-control" placeholder="DD/MM/AAAA">
                         </div>
                         <div class="form-group">
                             <label for="field-lastPromotionDate">Última Promoção</label>
@@ -279,7 +279,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                         </div>
                         <div class="form-group">
                             <label for="field-presentationDate">Apresentação no DTCEA</label>
-                            <input type="text" id="field-presentationDate" class="form-control" placeholder="DD/MM/AAAA" required>
+                            <input type="text" id="field-presentationDate" class="form-control" placeholder="DD/MM/AAAA">
                         </div>
 
                         <!-- Inspeção de Saúde -->
