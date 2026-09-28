@@ -51,6 +51,7 @@ ctr_efetivo/
 │   ├── auth.php                     # Funções e regras de sessão e controle de acessos
 │   ├── config.php                   # Configuração de banco, timezone e tratamento de dados
 │   ├── dashboard.php                # Painel visual com relatórios e métricas para a Chefia
+│   ├── visaogeral.php               # Visão Geral & Gestão Completa de Pessoal (SGP Integrado)
 │   ├── database.sqlite              # Banco SQLite de referência (legado)
 │   ├── db_init.php                  # Script CLI para criação do banco e importação do CSV
 │   ├── index.php                    # Interface de chamada diária

@@ -116,6 +116,7 @@ if (isset($_SESSION['user_id'])) {
         <nav class="nav-menu">
             <?php if ($user): ?>
                 <a href="index.php" class="nav-link">Lançar Chamada</a>
+                <a href="visaogeral.php" class="nav-link">Visão Geral</a>
                 <?php if ($user['perfil'] === 'chefia' || $user['perfil'] === 'admin'): ?>
                     <a href="dashboard.php" class="nav-link">Painel da Chefia</a>
                 <?php endif; ?>
