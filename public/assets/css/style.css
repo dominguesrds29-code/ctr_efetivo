@@ -978,41 +978,61 @@ body {
     }
 }
 
+/* Layout Expandido para Visão Geral */
+.container-wide {
+    max-width: 98%;
+    width: 98%;
+    margin: 20px auto;
+    padding: 0 12px;
+}
+
 /* Tabela Compacta para Visão Geral */
 .visaogeral-table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
 }
 
 .visaogeral-table th {
     background-color: #F8FAFC;
-    padding: 9px 10px;
-    font-weight: 600;
+    padding: 7px 8px;
+    font-weight: 700;
     color: var(--text-muted);
     border-bottom: 1.5px solid var(--border);
-    font-size: 0.74rem;
+    font-size: 0.70rem;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     white-space: nowrap;
 }
 
 .visaogeral-table td {
-    padding: 7px 10px;
+    padding: 6px 8px;
     border-bottom: 1px solid var(--border);
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     vertical-align: middle;
     white-space: nowrap;
 }
 
 .visaogeral-table td.col-posto-nome {
     white-space: normal;
-    min-width: 180px;
+    min-width: 150px;
+    line-height: 1.25;
 }
 
 .visaogeral-table tr:hover {
     background-color: #F8FAFC;
+}
+
+.health-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-size: 0.70rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 

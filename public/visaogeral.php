@@ -61,7 +61,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
         </nav>
     </header>
 
-    <div class="container">
+    <div class="container container-wide">
         <!-- Cabeçalho da Página -->
         <div class="page-header">
             <div class="page-title">
@@ -164,8 +164,8 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                 <table class="visaogeral-table" id="personnel-table">
                     <thead>
                         <tr>
-                            <th style="min-width: 100px;">SARAM</th>
-                            <th style="min-width: 200px;">Posto / Grad / Nome</th>
+                            <th>SARAM</th>
+                            <th style="min-width: 140px;">Posto / Grad / Nome</th>
                             <th>Especialidade</th>
                             <th>Seção</th>
                             <th>Identidade</th>
@@ -176,7 +176,7 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
                             <th>Prorrogação</th>
                             <th>Insp. Saúde Val.</th>
                             <?php if ($isAdmin): ?>
-                                <th style="width: 70px; text-align: center;">Ações</th>
+                                <th style="width: 60px; text-align: center;">Ações</th>
                             <?php endif; ?>
                         </tr>
                     </thead>
@@ -720,13 +720,13 @@ $isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
 
             const warOrName = p.warName && p.warName !== '-' ? p.warName : p.name;
             const postoGradNome = `${p.rank ? p.rank + ' ' : ''}${warOrName}`.trim();
-            const fullNameSub = (p.name && p.name !== postoGradNome) ? `<div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">${p.name}</div>` : '';
+            const fullNameSub = (p.name && p.name !== postoGradNome) ? `<div style="font-size: 0.67rem; color: var(--text-muted); text-transform: uppercase;">${p.name}</div>` : '';
             const secaoDisplay = p.secao_nome || p.secao || '-';
 
             tr.innerHTML = `
                 <td><strong>${p.saram || '-'}</strong></td>
                 <td class="col-posto-nome">
-                    <strong style="color: var(--primary-dark); font-size: 0.88rem;">${postoGradNome}</strong>
+                    <strong style="color: var(--primary-dark); font-size: 0.81rem;">${postoGradNome}</strong>
                     ${fullNameSub}
                 </td>
                 <td>${p.specialty || '-'}</td>
