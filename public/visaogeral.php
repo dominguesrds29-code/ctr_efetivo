@@ -68,10 +68,6 @@ $isAdmin = ($user['perfil'] === 'admin');
                 <h2>Visão Geral & Gestão de Pessoal</h2>
                 <p>Controle de efetivo, inspeções de saúde, tempos de serviço, reserva e estrutura de seções do DTCEA-SJ.</p>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Base:</span>
-                <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary); background: #EBF8FF; padding: 4px 10px; border-radius: 6px; border: 1px solid #BEE3F8;">efetivosj (MySQL)</span>
-            </div>
         </div>
 
         <!-- DASHBOARD KPI CARDS -->
@@ -165,11 +161,11 @@ $isAdmin = ($user['perfil'] === 'admin');
                 <span class="section-badge" id="table-count-badge">0 Registros</span>
             </div>
             <div class="table-responsive">
-                <table class="efetivo-table" id="personnel-table">
+                <table class="visaogeral-table" id="personnel-table">
                     <thead>
                         <tr>
-                            <th style="min-width: 110px;">SARAM</th>
-                            <th style="min-width: 220px;">Posto / Grad / Nome</th>
+                            <th style="min-width: 100px;">SARAM</th>
+                            <th style="min-width: 200px;">Posto / Grad / Nome</th>
                             <th>Especialidade</th>
                             <th>Seção</th>
                             <th>Identidade</th>
@@ -180,14 +176,14 @@ $isAdmin = ($user['perfil'] === 'admin');
                             <th>Prorrogação</th>
                             <th>Insp. Saúde Val.</th>
                             <?php if ($isAdmin): ?>
-                                <th style="width: 80px; text-align: center;">Ações</th>
+                                <th style="width: 70px; text-align: center;">Ações</th>
                             <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td colspan="<?= $isAdmin ? 12 : 11 ?>" style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
-                                Carregando dados da base efetivosj...
+                                Carregando dados do efetivo...
                             </td>
                         </tr>
                     </tbody>
@@ -205,7 +201,7 @@ $isAdmin = ($user['perfil'] === 'admin');
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
-            <form id="person-form">
+            <form id="person-form" class="modal-form-scrollable">
                 <input type="hidden" id="modal-action" value="add">
                 <input type="hidden" id="modal-edit-id" value="">
 
@@ -724,13 +720,13 @@ $isAdmin = ($user['perfil'] === 'admin');
 
             const warOrName = p.warName && p.warName !== '-' ? p.warName : p.name;
             const postoGradNome = `${p.rank ? p.rank + ' ' : ''}${warOrName}`.trim();
-            const fullNameSub = (p.name && p.name !== postoGradNome) ? `<div style="font-size: 0.78rem; color: var(--text-muted);">${p.name}</div>` : '';
+            const fullNameSub = (p.name && p.name !== postoGradNome) ? `<div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">${p.name}</div>` : '';
             const secaoDisplay = p.secao_nome || p.secao || '-';
 
             tr.innerHTML = `
                 <td><strong>${p.saram || '-'}</strong></td>
-                <td>
-                    <strong style="color: var(--primary-dark); font-size: 0.95rem;">${postoGradNome}</strong>
+                <td class="col-posto-nome">
+                    <strong style="color: var(--primary-dark); font-size: 0.88rem;">${postoGradNome}</strong>
                     ${fullNameSub}
                 </td>
                 <td><span class="specialty-badge">${p.specialty || '-'}</span></td>

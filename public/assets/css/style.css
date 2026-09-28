@@ -910,35 +910,60 @@ body {
     color: var(--danger);
 }
 
+.modal-form-scrollable {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
 .modal-body {
-    padding: 24px;
+    padding: 20px 24px;
     overflow-y: auto;
     flex: 1;
+    min-height: 0;
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.modal-body::-webkit-scrollbar-track {
+    background: #F1F5F9;
+    border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
 }
 
 .modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 16px 24px;
+    padding: 14px 24px;
     background-color: #F8FAFC;
     border-top: 1.5px solid var(--border);
+    flex-shrink: 0;
 }
 
 .form-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    gap: 14px;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
 }
 
 .form-group label {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 600;
     color: var(--text);
 }
@@ -952,4 +977,42 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Tabela Compacta para Visão Geral */
+.visaogeral-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.82rem;
+}
+
+.visaogeral-table th {
+    background-color: #F8FAFC;
+    padding: 9px 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1.5px solid var(--border);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.visaogeral-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.visaogeral-table td.col-posto-nome {
+    white-space: normal;
+    min-width: 180px;
+}
+
+.visaogeral-table tr:hover {
+    background-color: #F8FAFC;
+}
+
 
