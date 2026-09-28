@@ -574,7 +574,7 @@ if (isset($_SESSION['user_id'])) {
                 <div class="manual-card-header">
                     <div class="title-group">
                         <svg width="24" height="24" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        <h3>2. Perfis de Usuário & Níveis de Permissão</h3>
+                        <h3>2. Perfis de Usuário e Níveis de Permissão</h3>
                     </div>
                 </div>
                 <p>O sistema possui 3 níveis de acesso bem definidos, atribuídos pela administração:</p>
@@ -612,7 +612,7 @@ if (isset($_SESSION['user_id'])) {
                     <li><strong>Filtros Avançados:</strong> Permite filtrar por Seção, Posto/Graduação, Especialidade BCT e Situação (Ativos vs Desativados).</li>
                     <li><strong>Pesquisa Dinâmica Instantânea:</strong> Digite o Nome de Guerra, Nome Completo ou SARAM para localizar qualquer militar em fração de segundo.</li>
                     <li><strong>Máscara de CPF Automática:</strong> Formatação padronizada e segura no formato <code>000.000.000-00</code>.</li>
-                    <li><strong>Inclusão & Edição de Militares:</strong> Modal com formulário estruturado e barra de rolagem dedicada, permitindo preencher todos os dados sem cortes de tela.</li>
+                    <li><strong>Inclusão e Edição de Militares:</strong> Modal com formulário estruturado e barra de rolagem dedicada, permitindo preencher todos os dados sem cortes de tela.</li>
                 </ul>
 
                 <div id="desativar-reativar" style="margin-top: 25px; scroll-margin-top: 100px;">
@@ -734,7 +734,7 @@ if (isset($_SESSION['user_id'])) {
                 <div class="manual-card-header">
                     <div class="title-group">
                         <svg width="24" height="24" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <h3>7. Tabela Oficial de Legendas & Siglas de Chamada</h3>
+                        <h3>7. Tabela Oficial de Legendas  Siglas de Chamada</h3>
                     </div>
                     <span class="badge-profile badge-all">Referência</span>
                 </div>
@@ -860,7 +860,7 @@ if (isset($_SESSION['user_id'])) {
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
                     <div class="faq-answer">
-                        Entre em contato com o Administrador do Sistema do DTCEA-SJ. Na aba <em>Administração -> Usuários & Acessos</em>, o administrador poderá redefinir sua senha para uma senha temporária ou definitiva.
+                        Entre em contato com o Administrador do Sistema do DTCEA-SJ. Na aba <em>Administração -> Usuários e Acessos</em>, o administrador poderá redefinir sua senha para uma senha temporária ou definitiva.
                     </div>
                 </div>
 
