@@ -11,10 +11,14 @@ $user = null;
 if (isset($_SESSION['user_id'])) {
     $user = [
         'id' => $_SESSION['user_id'],
-        'usuario' => $_SESSION['user_usuario'],
-        'nome' => $_SESSION['user_nome'],
-        'perfil' => $_SESSION['user_perfil']
+        'usuario' => $_SESSION['user_usuario'] ?? '',
+        'nome' => $_SESSION['user_nome'] ?? '',
+        'perfil' => $_SESSION['user_perfil'] ?? 'encarregado'
     ];
+    if (!in_array($user['perfil'], ['chefia', 'admin'])) {
+        header("Location: index.php");
+        exit;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -461,14 +465,18 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </div>
         <nav class="nav-menu">
-            <a href="visaogeral.php" class="nav-link">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                Visão Geral
-            </a>
-            <a href="index.php" class="nav-link">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                Lançar Chamada
-            </a>
+            <?php if (isset($user) && $user && in_array($user['perfil'], ['chefia', 'admin'])): ?>
+                <a href="visaogeral.php" class="nav-link">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    Visão Geral
+                </a>
+            <?php endif; ?>
+            <?php if (isset($user) && $user && $user['perfil'] === 'admin'): ?>
+                <a href="index.php" class="nav-link">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    Lançar Chamada
+                </a>
+            <?php endif; ?>
             <?php if (isset($user) && $user && in_array($user['perfil'], ['chefia', 'admin'])): ?>
                 <a href="dashboard.php" class="nav-link">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -481,10 +489,12 @@ if (isset($_SESSION['user_id'])) {
                     Administração
                 </a>
             <?php endif; ?>
-            <a href="help.php" class="nav-link active">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Ajuda
-            </a>
+            <?php if (!isset($user) || !$user || in_array($user['perfil'], ['chefia', 'admin'])): ?>
+                <a href="help.php" class="nav-link active">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Ajuda
+                </a>
+            <?php endif; ?>
             
             <?php if (isset($user) && $user): ?>
             <div class="nav-user">
@@ -577,20 +587,24 @@ if (isset($_SESSION['user_id'])) {
                         <h3>2. Perfis de Usuário e Níveis de Permissão</h3>
                     </div>
                 </div>
-                <p>O sistema possui 3 níveis de acesso bem definidos, atribuídos pela administração:</p>
+                <p>O sistema possui 4 níveis de perfis com regras de acesso e permissões claramente definidas:</p>
 
                 <div class="feature-grid">
                     <div class="feature-box" style="border-left: 4px solid var(--primary);">
                         <h4><span class="badge-profile badge-enc">Encarregado</span></h4>
-                        <p>Perfil operacional para os encarregados de seção e graduados de dia. Responsável por realizar a chamada diária e lançar períodos de afastamento de sua respectiva seção.</p>
+                        <p>Perfil operacional para os encarregados de seção. Não altera dados cadastrais e enxerga exclusivamente o menu <strong>"Lançar Chamada"</strong> apenas com os militares de sua própria seção.</p>
                     </div>
                     <div class="feature-box" style="border-left: 4px solid var(--info);">
                         <h4><span class="badge-profile badge-chefe">Chefia</span></h4>
-                        <p>Acesso estratégico ao Painel da Chefia, gráficos consolidados, mapas de indisponibilidade geral e relatórios analíticos de todo o efetivo da unidade.</p>
+                        <p>Acesso estratégico de consulta. Enxerga o menu <strong>"Visão Geral"</strong> sem poder editar dados e o menu de <strong>"Painel da Chefia"</strong> com indicadores e relatórios consolidados.</p>
                     </div>
                     <div class="feature-box" style="border-left: 4px solid var(--danger);">
                         <h4><span class="badge-profile badge-adm">Administrador</span></h4>
-                        <p>Acesso irrestrito a todos os módulos, permitindo cadastrar e configurar seções, gerenciar contas de usuários, alterar senhas e gerenciar dados mestres do efetivo.</p>
+                        <p>Acesso total de leitura e escrita a todos os dados e módulos (Visão Geral, Lançar Chamada, Painel da Chefia, Administração e Ajuda).</p>
+                    </div>
+                    <div class="feature-box" style="border-left: 4px solid var(--border);">
+                        <h4><span class="badge-profile" style="background: #64748B; color: #fff;">Auxiliar</span></h4>
+                        <p>Não possui acesso ao serviço de Controle de Efetivo. Ao tentar autenticar, o sistema exibe uma mensagem educada orientando sobre a restrição de acesso.</p>
                     </div>
                 </div>
             </section>

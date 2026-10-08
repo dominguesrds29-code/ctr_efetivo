@@ -3,7 +3,7 @@
 // Página Principal - Chamada Diária e Lançamento de Presença
 
 require_once __DIR__ . '/auth.php';
-requireLogin();
+requireChamada();
 
 $user = getCurrentUser();
 $selectedDate = sanitize($_GET['date'] ?? date('Y-m-d'));
@@ -24,7 +24,9 @@ try {
         AND TRIM(COALESCE(s.`$secCol`, '')) NOT IN ('Torre de Controle', 'TORRE DE CONTROLE', 'TWR', 'EMS', 'EMS1', 'EMS-1 / CMA-2', 'Sala AIS', 'SALA AIS', 'AIS', 'Sem Seção', '')
     ";
 
-    if (!empty($user['secao']) && $user['perfil'] === 'encarregado') {
+    if ($user['perfil'] === 'encarregado') {
+        $userSecId = (int)($user['secao_id'] ?? 0);
+        $userSecNome = $user['secao'] ?? '';
         $stmt = $db->prepare("
             SELECT u.*, 
                    s.`$secCol` as secao, 
@@ -37,7 +39,7 @@ try {
               AND (u.section_id = ? OR s.`$secCol` = ?)
             ORDER BY secao ASC, u.name ASC
         ");
-        $stmt->execute([$selectedDate, $user['secao_id'] ?? 0, $user['secao']]);
+        $stmt->execute([$selectedDate, $userSecId, $userSecNome]);
     } else {
         $stmt = $db->prepare("
             SELECT u.*, 
@@ -85,15 +87,17 @@ $errorMsg = sanitize($_GET['error'] ?? '');
             </div>
         </div>
         <nav class="nav-menu">
-            <a href="visaogeral.php" class="nav-link">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                Visão Geral
-            </a>
+            <?php if ($user['perfil'] === 'admin'): ?>
+                <a href="visaogeral.php" class="nav-link">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    Visão Geral
+                </a>
+            <?php endif; ?>
             <a href="index.php" class="nav-link active">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                 Lançar Chamada
             </a>
-            <?php if (in_array($user['perfil'], ['chefia', 'admin'])): ?>
+            <?php if ($user['perfil'] === 'admin'): ?>
                 <a href="dashboard.php" class="nav-link">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                     Painel da Chefia
@@ -105,10 +109,12 @@ $errorMsg = sanitize($_GET['error'] ?? '');
                     Administração
                 </a>
             <?php endif; ?>
-            <a href="help.php" class="nav-link">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Ajuda
-            </a>
+            <?php if ($user['perfil'] === 'admin'): ?>
+                <a href="help.php" class="nav-link">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Ajuda
+                </a>
+            <?php endif; ?>
             
             <div class="nav-user">
                 <span>Olá, <strong><?= $user['nome'] ?></strong></span>

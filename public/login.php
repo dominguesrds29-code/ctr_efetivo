@@ -9,7 +9,7 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
-$error = '';
+$error = sanitize($_GET['error'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $loginInput = sanitize($_POST['usuario'] ?? '');
@@ -63,22 +63,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } catch (Exception $e) {}
                 }
 
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['user_saram'] = $user['saram'];
-                $_SESSION['user_email'] = $user['email'];
-                $_SESSION['user_nome'] = formatarNomeMilitar($user);
-                $_SESSION['user_perfil'] = $perfil;
-                $_SESSION['user_secao_id'] = $user['section_id'];
-                $_SESSION['user_secao'] = $user['secao_nome'];
-
-                if ($perfil === 'admin') {
-                    header("Location: admin.php");
-                } elseif ($perfil === 'chefia') {
-                    header("Location: dashboard.php");
+                // O perfil Auxiliar não acessa o serviço
+                if ($perfil === 'auxiliar') {
+                    $nomeMilitar = formatarNomeMilitar($user);
+                    $error = "Prezado(a) " . $nomeMilitar . ", o perfil de Auxiliar não possui permissão de acesso ao sistema de Controle de Efetivo. Caso necessite de acesso, favor solicitar à Chefia ou Administração do DTCEA-SJ.";
                 } else {
-                    header("Location: index.php");
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_saram'] = $user['saram'];
+                    $_SESSION['user_email'] = $user['email'];
+                    $_SESSION['user_nome'] = formatarNomeMilitar($user);
+                    $_SESSION['user_perfil'] = $perfil;
+                    $_SESSION['user_secao_id'] = $user['section_id'];
+                    $_SESSION['user_secao'] = $user['secao_nome'];
+
+                    if ($perfil === 'admin') {
+                        header("Location: visaogeral.php");
+                    } elseif ($perfil === 'chefia') {
+                        header("Location: dashboard.php");
+                    } else {
+                        header("Location: index.php");
+                    }
+                    exit;
                 }
-                exit;
             } else {
                 $error = 'SARAM, E-mail ou senha incorretos.';
             }

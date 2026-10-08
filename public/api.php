@@ -18,7 +18,9 @@ if (!isLoggedIn()) {
 
 $action = $_GET['action'] ?? '';
 $user = getCurrentUser();
-$isAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
+$isAdmin = ($user && $user['perfil'] === 'admin');
+$isChefiaOrAdmin = ($user && in_array($user['perfil'], ['admin', 'chefia']));
+$isEncarregadoOrAdmin = ($user && in_array($user['perfil'], ['admin', 'encarregado']));
 
 function formatDateToSQL($dateStr) {
     if (empty($dateStr)) return null;
@@ -48,6 +50,11 @@ try {
     // 1. LISTAR EFETIVO COMPLETO (VISÃO GERAL)
     // -------------------------------------------------------------
     if ($action === 'list_personnel' || $action === 'list') {
+        if (!$isChefiaOrAdmin) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Acesso não autorizado. Apenas Chefia e Administração podem visualizar o efetivo geral.']);
+            exit;
+        }
         $sec = getSecaoInfo($db);
         $secTable = $sec['table'];
         $secCol = $sec['name_col'];
@@ -419,6 +426,12 @@ try {
     // 7. SALVAR CHAMADA DIÁRIA (LANÇAMENTO DE CHAMADA)
     // -------------------------------------------------------------
     elseif ($action === 'save_call' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!$isEncarregadoOrAdmin) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Acesso negado. Apenas Encarregados e Administradores podem realizar lançamentos de chamada.']);
+            exit;
+        }
+
         $input = json_decode(file_get_contents('php://input'), true);
         $date = sanitize($input['date'] ?? '');
         $presenceData = $input['presencas'] ?? [];
@@ -427,6 +440,32 @@ try {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Data inválida.', 'error' => 'Data inválida']);
             exit;
+        }
+
+        // Se for perfil encarregado, validar que só pode lançar para militares de sua própria seção
+        if ($user['perfil'] === 'encarregado') {
+            $userSecId = (int)($user['secao_id'] ?? 0);
+            $userSecNome = $user['secao'] ?? '';
+            $sec = getSecaoInfo($db);
+            $secTable = $sec['table'];
+            $secCol = $sec['name_col'];
+            
+            $validStmt = $db->prepare("
+                SELECT u.id 
+                FROM users u 
+                LEFT JOIN `$secTable` s ON u.section_id = s.id
+                WHERE u.deleted_at IS NULL AND (u.section_id = ? OR s.`$secCol` = ?)
+            ");
+            $validStmt->execute([$userSecId, $userSecNome]);
+            $allowedIds = $validStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            foreach (array_keys($presenceData) as $mId) {
+                if (!in_array((int)$mId, $allowedIds)) {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'message' => 'Você só possui permissão para lançar chamada para militares de sua própria seção.']);
+                    exit;
+                }
+            }
         }
 
         $db->beginTransaction();
@@ -447,6 +486,12 @@ try {
     // 8. SALVAR PERÍODO DE AFASTAMENTO
     // -------------------------------------------------------------
     elseif ($action === 'save_period' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!$isEncarregadoOrAdmin) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Acesso negado. Apenas Encarregados e Administradores podem lançar períodos de afastamento.']);
+            exit;
+        }
+
         $input = json_decode(file_get_contents('php://input'), true);
         $militarId = (int)($input['militar_id'] ?? 0);
         $status = sanitize($input['status'] ?? '');
@@ -457,6 +502,28 @@ try {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos.', 'error' => 'Parâmetros inválidos']);
             exit;
+        }
+
+        // Se for perfil encarregado, validar que o militar selecionado é de sua seção
+        if ($user['perfil'] === 'encarregado') {
+            $userSecId = (int)($user['secao_id'] ?? 0);
+            $userSecNome = $user['secao'] ?? '';
+            $sec = getSecaoInfo($db);
+            $secTable = $sec['table'];
+            $secCol = $sec['name_col'];
+
+            $validStmt = $db->prepare("
+                SELECT u.id 
+                FROM users u 
+                LEFT JOIN `$secTable` s ON u.section_id = s.id
+                WHERE u.id = ? AND u.deleted_at IS NULL AND (u.section_id = ? OR s.`$secCol` = ?)
+            ");
+            $validStmt->execute([$militarId, $userSecId, $userSecNome]);
+            if (!$validStmt->fetch()) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Você só possui permissão para lançar afastamento para militares de sua própria seção.']);
+                exit;
+            }
         }
 
         $start = new DateTime($dateStart);

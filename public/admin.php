@@ -360,10 +360,12 @@ try {
             </div>
         </div>
         <nav class="nav-menu">
-            <a href="visaogeral.php" class="nav-link">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                Visão Geral
-            </a>
+            <?php if (in_array($user['perfil'], ['chefia', 'admin'])): ?>
+                <a href="visaogeral.php" class="nav-link">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    Visão Geral
+                </a>
+            <?php endif; ?>
             <a href="index.php" class="nav-link">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                 Lançar Chamada
@@ -376,10 +378,12 @@ try {
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
                 Administração
             </a>
-            <a href="help.php" class="nav-link">
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Ajuda
-            </a>
+            <?php if (in_array($user['perfil'], ['chefia', 'admin'])): ?>
+                <a href="help.php" class="nav-link">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Ajuda
+                </a>
+            <?php endif; ?>
             
             <div class="nav-user">
                 <span>Olá, <strong><?= $user['nome'] ?></strong></span>
@@ -574,10 +578,10 @@ try {
                             <div class="form-group">
                                 <label for="uPerfil">Perfil de Acesso</label>
                                 <select name="perfil" id="uPerfil" class="form-input" style="padding: 10px;" required>
-                                    <option value="auxiliar">Auxiliar / Militar (Membro da Seção)</option>
-                                    <option value="encarregado">Encarregado (Lançar chamada de sua seção)</option>
-                                    <option value="chefia">Chefia (Visualizar Painel e Indicadores)</option>
-                                    <option value="admin">Administrador (Acesso total)</option>
+                                    <option value="auxiliar">Auxiliar (Sem acesso ao sistema)</option>
+                                    <option value="encarregado">Encarregado (Lançar chamada apenas de sua seção)</option>
+                                    <option value="chefia">Chefia (Visão Geral sem edição e Painel da Chefia)</option>
+                                    <option value="admin">Administrador (Acesso total de leitura/escrita e todos os menus)</option>
                                 </select>
                             </div>
 
