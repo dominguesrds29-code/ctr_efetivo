@@ -9,19 +9,23 @@ $user = getCurrentUser();
 $isAdmin = ($user && $user['perfil'] === 'admin');
 $isChefiaOrAdmin = ($user && in_array($user['perfil'], ['chefia', 'admin']));
 
-// Buscar seções e militares para os selects do formulário
+// Buscar seções e militares ativos para os selects do formulário
 try {
     $sec = getSecaoInfo($db);
     $secTable = $sec['table'];
     $secCol = $sec['name_col'];
+    $codeCol = $sec['code_col'];
 
-    $secoes = $db->query("SELECT id, `$secCol` as nome FROM `$secTable` ORDER BY `$secCol` ASC")->fetchAll();
+    $secoes = $db->query("SELECT id, `$secCol` as nome, `$codeCol` as sigla FROM `$secTable` ORDER BY `$codeCol` ASC, `$secCol` ASC")->fetchAll();
     
     $militares = $db->query("
-        SELECT id, name, war_name, grade, section_id 
-        FROM users 
-        WHERE deleted_at IS NULL 
-        ORDER BY name ASC
+        SELECT u.id, u.name, u.war_name, u.grade, u.section_id,
+               COALESCE(s.`$codeCol`, s.`$secCol`, '') AS secao_sigla
+        FROM users u 
+        LEFT JOIN `$secTable` s ON u.section_id = s.id
+        WHERE u.deleted_at IS NULL 
+          AND TRIM(COALESCE(u.name, '')) != ''
+        ORDER BY (u.war_name IS NULL OR u.war_name = '') ASC, u.war_name ASC, u.name ASC
     ")->fetchAll();
 } catch (PDOException $e) {
     $secoes = [];
@@ -374,71 +378,219 @@ try {
         }
 
         /* Preset Chips in Modal */
+        .preset-container {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+        }
+
+        .preset-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         .preset-chips {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
-            margin-bottom: 15px;
         }
 
         .preset-chip {
-            background: #F1F5F9;
+            background: #FFFFFF;
             border: 1px solid #CBD5E1;
-            padding: 5px 12px;
+            padding: 4px 10px;
             border-radius: 16px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 600;
             color: var(--primary);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            user-select: none;
         }
 
         .preset-chip:hover {
-            background: var(--primary-light);
+            background: var(--primary);
             color: #FFFFFF;
             border-color: var(--primary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 47, 108, 0.2);
         }
 
         /* Modal specific styling */
-        .modal-large {
+        .modal-dialog.modal-large {
             max-width: 680px;
+            background: #FFFFFF !important;
+            border-radius: 14px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.08);
+            border-top: 4px solid var(--accent);
+            max-height: calc(100vh - 24px);
         }
 
-        .form-row-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+        .modal-header-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .form-row-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
+        .modal-header-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0, 47, 108, 0.25);
         }
 
-        @media (max-width: 768px) {
-            .form-row-2, .form-row-3 {
-                grid-template-columns: 1fr;
-            }
-            .task-card {
-                grid-template-columns: auto 1fr;
-            }
-            .task-due-box {
-                grid-column: 2;
-                align-items: flex-start;
-                text-align: left;
-                margin-top: 10px;
-            }
+        .modal-header-text h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .modal-header-text p {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin: 2px 0 0 0;
+        }
+
+        .form-section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary);
+            margin: 12px 0 6px;
+            padding-bottom: 4px;
+            border-bottom: 1.5px solid #F1F5F9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Card de Recorrência / Periodicidade */
+        .periodic-card {
+            background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%);
+            border: 1.5px solid #E9D5FF;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .periodic-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .periodic-card-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .periodic-card-icon {
+            width: 30px;
+            height: 30px;
+            background: #7E22CE;
+            color: white;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .periodic-card-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #581C87;
+            margin: 0;
+        }
+
+        .periodic-card-subtitle {
+            font-size: 0.75rem;
+            color: #7E22CE;
+            margin: 1px 0 0 0;
+        }
+
+        /* Toggle Switch iOS Style */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #CBD5E1;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #7E22CE;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
         }
 
         .periodic-panel {
-            background: #FAF5FF;
+            background: #FFFFFF;
             border: 1px solid #E9D5FF;
             border-radius: 8px;
-            padding: 15px;
+            padding: 12px;
             margin-top: 10px;
             display: none;
-            animation: fadeInModal 0.25s ease;
+            box-shadow: 0 2px 6px rgba(126, 34, 206, 0.08);
+            animation: fadeInModal 0.25s ease-out;
         }
 
         .periodic-panel.active {
@@ -636,16 +788,27 @@ try {
     <div id="taskModal" class="modal-overlay">
         <div class="modal-dialog modal-large">
             <div class="modal-header">
-                <h3 id="taskModalTitle" class="modal-title">Lançar Tarefa com Prazo</h3>
-                <button type="button" class="modal-close" onclick="closeTaskModal()">&times;</button>
+                <div class="modal-header-content">
+                    <div class="modal-header-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M9 16l2 2 4-4"></path></svg>
+                    </div>
+                    <div class="modal-header-text">
+                        <h3 id="taskModalTitle">Lançar Tarefa com Prazo</h3>
+                        <p>Defina o título, prazos limites, regras de lembretes e periodicidade.</p>
+                    </div>
+                </div>
+                <button type="button" class="modal-close" onclick="closeTaskModal()" title="Fechar">&times;</button>
             </div>
             <form id="taskForm" onsubmit="submitTaskForm(event)">
                 <input type="hidden" id="taskId" name="id" value="0">
                 <div class="modal-body">
                     
                     <!-- Sugestões Rápidas (Presets) -->
-                    <div style="margin-bottom: 8px;">
-                        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Sugestões Rápidas:</label>
+                    <div class="preset-container">
+                        <div class="preset-title">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Sugestões Rápidas de Prazos:
+                        </div>
                         <div class="preset-chips">
                             <span class="preset-chip" onclick="applyPreset('ferias')">📅 Lançar Férias (Mensal)</span>
                             <span class="preset-chip" onclick="applyPreset('escala')">📋 Conferência de Escala (Semanal)</span>
@@ -655,22 +818,36 @@ try {
                         </div>
                     </div>
 
+                    <div class="form-section-title">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Dados da Tarefa
+                    </div>
+
                     <!-- Título da Tarefa -->
                     <div class="form-group">
-                        <label for="inputTitulo" class="form-label">Título da Tarefa *</label>
+                        <label for="inputTitulo" class="form-label">
+                            Título da Tarefa <span style="color: var(--danger);">*</span>
+                        </label>
                         <input type="text" id="inputTitulo" name="titulo" class="form-control" placeholder="Ex: Lançar férias do efetivo" required>
                     </div>
 
                     <!-- Descrição / Detalhes -->
                     <div class="form-group">
-                        <label for="inputDescricao" class="form-label">Descrição da Tarefa & Instruções</label>
-                        <textarea id="inputDescricao" name="descricao" class="form-control" rows="3" placeholder="Detalhes, passos a serem realizados, procedimentos ou links de apoio..."></textarea>
+                        <label for="inputDescricao" class="form-label">Descrição & Instruções de Cumprimento</label>
+                        <textarea id="inputDescricao" name="descricao" class="form-control" rows="2" placeholder="Detalhes, passos a serem realizados, procedimentos necessários ou orientações adicionais..."></textarea>
+                    </div>
+
+                    <div class="form-section-title">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Prazos & Categorização
                     </div>
 
                     <!-- Datas e Horários -->
                     <div class="form-row-3">
                         <div class="form-group">
-                            <label for="inputDataLimite" class="form-label">Data Limite (Prazo) *</label>
+                            <label for="inputDataLimite" class="form-label">
+                                Data Limite (Prazo) <span style="color: var(--danger);">*</span>
+                            </label>
                             <input type="date" id="inputDataLimite" name="data_limite" class="form-control" required>
                         </div>
                         <div class="form-group">
@@ -678,7 +855,7 @@ try {
                             <input type="time" id="inputHoraLimite" name="hora_limite" class="form-control" value="23:59">
                         </div>
                         <div class="form-group">
-                            <label for="inputCategoria" class="form-label">Categoria</label>
+                            <label for="inputCategoria" class="form-label">Categoria da Tarefa</label>
                             <select id="inputCategoria" name="categoria" class="form-control">
                                 <option value="Férias">Férias</option>
                                 <option value="Escala">Escala</option>
@@ -692,16 +869,21 @@ try {
                         </div>
                     </div>
 
-                    <!-- Configuração de Tarefa Periódica -->
-                    <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <div>
-                                <strong style="color: var(--primary); font-size: 0.95rem;">Tarefa Periódica / Recorrente?</strong>
-                                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Ative caso esta tarefa se repita periodicamente (ex: todo mês ou toda semana).</p>
+                    <!-- Card de Tarefa Periódica / Recorrente -->
+                    <div class="periodic-card">
+                        <div class="periodic-card-header">
+                            <div class="periodic-card-info">
+                                <div class="periodic-card-icon">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="periodic-card-title">Tarefa Periódica / Recorrente</h4>
+                                    <p class="periodic-card-subtitle">Ative para configurar lembretes automáticos periódicos (mensal/semanal).</p>
+                                </div>
                             </div>
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700;">
-                                <input type="checkbox" id="checkIsPeriodica" name="is_periodica" value="1" style="width: 20px; height: 20px; accent-color: var(--primary);" onchange="togglePeriodicPanel()">
-                                <span>Sim, é periódica</span>
+                            <label class="toggle-switch" title="Ativar / Desativar periodicidade">
+                                <input type="checkbox" id="checkIsPeriodica" name="is_periodica" value="1" onchange="togglePeriodicPanel()">
+                                <span class="toggle-slider"></span>
                             </label>
                         </div>
 
@@ -709,7 +891,7 @@ try {
                         <div id="periodicPanel" class="periodic-panel">
                             <div class="form-row-3">
                                 <div class="form-group" style="margin-bottom: 0;">
-                                    <label for="inputPeriodicidade" class="form-label">Repetição *</label>
+                                    <label for="inputPeriodicidade" class="form-label">Frequência *</label>
                                     <select id="inputPeriodicidade" name="periodicidade" class="form-control" onchange="updateLembreteSuggestions()">
                                         <option value="semanal">Semanal (Toda Semana)</option>
                                         <option value="quinzenal">Quinzenal (A cada 15 dias)</option>
@@ -718,11 +900,11 @@ try {
                                     </select>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
-                                    <label for="inputDiaLembrete" class="form-label">Regra / Dia de Lembrete</label>
+                                    <label for="inputDiaLembrete" class="form-label">Regra do Lembrete</label>
                                     <input type="text" id="inputDiaLembrete" name="dia_lembrete" class="form-control" placeholder="Ex: Todo dia 20 de cada mês">
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
-                                    <label for="inputAntecedencia" class="form-label">Alerta Crítico</label>
+                                    <label for="inputAntecedencia" class="form-label">Alerta de Urgência</label>
                                     <select id="inputAntecedencia" name="lembrete_antecedencia_dias" class="form-control">
                                         <option value="1">1 dia antes</option>
                                         <option value="2">2 dias antes</option>
@@ -736,19 +918,24 @@ try {
                         </div>
                     </div>
 
+                    <div class="form-section-title">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        Prioridade & Responsabilidades
+                    </div>
+
                     <!-- Prioridade, Status, Seção e Responsável -->
                     <div class="form-row-2">
                         <div class="form-group">
-                            <label for="inputPrioridade" class="form-label">Prioridade</label>
+                            <label for="inputPrioridade" class="form-label">Nível de Prioridade</label>
                             <select id="inputPrioridade" name="prioridade" class="form-control">
-                                <option value="baixa">Baixa</option>
-                                <option value="media" selected>Média</option>
-                                <option value="alta">Alta</option>
-                                <option value="critica">Crítica (Máxima Urgência)</option>
+                                <option value="baixa">🟢 Baixa</option>
+                                <option value="media" selected>🔵 Média</option>
+                                <option value="alta">🟠 Alta</option>
+                                <option value="critica">🔴 Crítica (Urgência Máxima)</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="inputStatus" class="form-label">Status da Tarefa</label>
+                            <label for="inputStatus" class="form-label">Status Inicial</label>
                             <select id="inputStatus" name="status" class="form-control">
                                 <option value="pendente" selected>Pendente</option>
                                 <option value="em_andamento">Em Andamento</option>
@@ -764,7 +951,7 @@ try {
                             <select id="inputSecao" name="secao_id" class="form-control">
                                 <option value="">Todas as Seções / Geral</option>
                                 <?php foreach ($secoes as $s): ?>
-                                    <option value="<?= $s['id'] ?>"><?= $s['nome'] ?></option>
+                                    <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['nome']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -773,7 +960,10 @@ try {
                             <select id="inputResponsavel" name="responsavel_id" class="form-control">
                                 <option value="">Nenhum / Atribuir depois</option>
                                 <?php foreach ($militares as $m): 
-                                    $nomeExib = (!empty($m['grade']) && strtoupper($m['grade']) !== 'MILITAR' ? $m['grade'] . ' ' : '') . (!empty($m['war_name']) && $m['war_name'] !== '-' ? $m['war_name'] : $m['name']);
+                                    $posto = (!empty($m['grade']) && strtoupper(trim($m['grade'])) !== 'MILITAR') ? trim($m['grade']) . ' ' : '';
+                                    $guerra = (!empty($m['war_name']) && trim($m['war_name']) !== '-' && trim($m['war_name']) !== '') ? trim($m['war_name']) : trim($m['name']);
+                                    $secTxt = !empty($m['secao_sigla']) ? ' (' . trim($m['secao_sigla']) . ')' : '';
+                                    $nomeExib = trim($posto . $guerra) . $secTxt;
                                 ?>
                                     <option value="<?= $m['id'] ?>"><?= htmlspecialchars($nomeExib) ?></option>
                                 <?php endforeach; ?>
@@ -782,9 +972,12 @@ try {
                     </div>
 
                 </div>
-                <div class="modal-footer" style="padding: 16px 24px; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid #CBD5E1; background: white; cursor: pointer;">Cancelar</button>
-                    <button type="submit" id="btnSaveTask" class="btn btn-primary" style="background: var(--primary); color: white; padding: 8px 20px; border-radius: 6px; border: none; font-weight: 700; cursor: pointer;">Salvar Tarefa</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()" style="padding: 10px 18px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: white; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s;">Cancelar</button>
+                    <button type="submit" id="btnSaveTask" class="btn btn-primary" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 10px 24px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 47, 108, 0.25); display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                        <svg width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                        Salvar Tarefa
+                    </button>
                 </div>
             </form>
         </div>
