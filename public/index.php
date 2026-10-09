@@ -103,6 +103,10 @@ $errorMsg = sanitize($_GET['error'] ?? '');
                     Painel da Chefia
                 </a>
             <?php endif; ?>
+            <a href="tarefas.php" class="nav-link">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M9 16l2 2 4-4"></path></svg>
+                Prazos e Entregas
+            </a>
             <?php if ($user['perfil'] === 'admin'): ?>
                 <a href="admin.php" class="nav-link">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>

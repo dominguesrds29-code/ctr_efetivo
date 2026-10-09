@@ -552,6 +552,372 @@ try {
         exit;
     }
 
+    // -------------------------------------------------------------
+    // 6. LISTAR TAREFAS COM PRAZO & ENTREGAS (LIST_TASKS)
+    // -------------------------------------------------------------
+    if ($action === 'list_tasks') {
+        $sec = getSecaoInfo($db);
+        $secTable = $sec['table'];
+        $secCol = $sec['name_col'];
+
+        $filterStatus = sanitize($_GET['status'] ?? 'all');
+        $filterPrioridade = sanitize($_GET['prioridade'] ?? 'all');
+        $filterPeriodicidade = sanitize($_GET['periodicidade'] ?? 'all');
+        $search = sanitize($_GET['search'] ?? '');
+        $secaoId = (int)($_GET['secao_id'] ?? 0);
+
+        $sql = "
+            SELECT t.*, 
+                   COALESCE(s.`$secCol`, 'Todas as Seções / Geral') as secao_nome,
+                   u_resp.name as responsavel_nome,
+                   u_resp.war_name as responsavel_war_name,
+                   u_resp.grade as responsavel_grade,
+                   u_cria.name as criador_nome
+            FROM tarefas_prazos t
+            LEFT JOIN `$secTable` s ON t.secao_id = s.id
+            LEFT JOIN users u_resp ON t.responsavel_id = u_resp.id
+            LEFT JOIN users u_cria ON t.criado_por = u_cria.id
+            WHERE 1=1
+        ";
+        $params = [];
+
+        if ($filterStatus === 'pendentes') {
+            $sql .= " AND t.status IN ('pendente', 'em_andamento') AND t.data_limite >= CURDATE()";
+        } elseif ($filterStatus === 'atrasadas') {
+            $sql .= " AND t.status IN ('pendente', 'em_andamento') AND t.data_limite < CURDATE()";
+        } elseif ($filterStatus === 'concluidas') {
+            $sql .= " AND t.status = 'concluida'";
+        } elseif (!empty($filterStatus) && $filterStatus !== 'all') {
+            $sql .= " AND t.status = ?";
+            $params[] = $filterStatus;
+        }
+
+        if (!empty($filterPrioridade) && $filterPrioridade !== 'all') {
+            $sql .= " AND t.prioridade = ?";
+            $params[] = $filterPrioridade;
+        }
+
+        if ($filterPeriodicidade === 'periodicas') {
+            $sql .= " AND t.is_periodica = 1";
+        } elseif ($filterPeriodicidade === 'pontuais') {
+            $sql .= " AND t.is_periodica = 0";
+        } elseif (in_array($filterPeriodicidade, ['semanal', 'mensal', 'quinzenal', 'anual'])) {
+            $sql .= " AND t.periodicidade = ?";
+            $params[] = $filterPeriodicidade;
+        }
+
+        if ($secaoId > 0) {
+            $sql .= " AND (t.secao_id = ? OR t.secao_id IS NULL)";
+            $params[] = $secaoId;
+        }
+
+        if (!empty($search)) {
+            $sql .= " AND (t.titulo LIKE ? OR t.descricao LIKE ? OR t.categoria LIKE ?)";
+            $searchTerm = "%$search%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+
+        $sql .= " ORDER BY (t.status = 'concluida') ASC, (t.data_limite < CURDATE()) DESC, t.data_limite ASC, t.prioridade DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $hoje = new DateTime(date('Y-m-d'));
+        $tasks = [];
+        $totalAtivas = 0;
+        $totalCriticas = 0;
+        $totalAtrasadas = 0;
+        $totalPeriodicas = 0;
+        $totalConcluidas = 0;
+
+        foreach ($rows as $r) {
+            $dtLimite = new DateTime($r['data_limite']);
+            $diff = $hoje->diff($dtLimite);
+            $diasRestantes = (int)$diff->format('%r%a');
+            
+            $isAtrasada = ($diasRestantes < 0 && $r['status'] !== 'concluida');
+            $antecedencia = (int)($r['lembrete_antecedencia_dias'] ?? 3);
+            $isCriticaPrazo = ($diasRestantes <= $antecedencia && $r['status'] !== 'concluida') || ($r['prioridade'] === 'critica' && $r['status'] !== 'concluida');
+
+            if ($r['status'] === 'concluida') {
+                $totalConcluidas++;
+            } else {
+                $totalAtivas++;
+                if ($isAtrasada) {
+                    $totalAtrasadas++;
+                }
+                if ($isCriticaPrazo) {
+                    $totalCriticas++;
+                }
+                if ($r['is_periodica']) {
+                    $totalPeriodicas++;
+                }
+            }
+
+            $respNomeCompleto = '';
+            if (!empty($r['responsavel_nome'])) {
+                $grade = !empty($r['responsavel_grade']) && strtoupper($r['responsavel_grade']) !== 'MILITAR' ? $r['responsavel_grade'] . ' ' : '';
+                $guerra = !empty($r['responsavel_war_name']) && $r['responsavel_war_name'] !== '-' ? $r['responsavel_war_name'] : $r['responsavel_nome'];
+                $respNomeCompleto = trim($grade . $guerra);
+            }
+
+            $tasks[] = [
+                'id' => (int)$r['id'],
+                'titulo' => $r['titulo'],
+                'descricao' => $r['descricao'] ?? '',
+                'data_limite' => $r['data_limite'],
+                'data_limite_fmt' => formatSQLToDate($r['data_limite']),
+                'hora_limite' => $r['hora_limite'] ? substr($r['hora_limite'], 0, 5) : '23:59',
+                'is_periodica' => (bool)$r['is_periodica'],
+                'periodicidade' => $r['periodicidade'],
+                'dia_lembrete' => $r['dia_lembrete'] ?? '',
+                'lembrete_antecedencia_dias' => (int)$r['lembrete_antecedencia_dias'],
+                'prioridade' => $r['prioridade'],
+                'status' => $r['status'],
+                'categoria' => $r['categoria'] ?? 'Geral',
+                'secao_id' => $r['secao_id'] ? (int)$r['secao_id'] : null,
+                'secao_nome' => $r['secao_nome'] ?? 'Geral / Todas',
+                'responsavel_id' => $r['responsavel_id'] ? (int)$r['responsavel_id'] : null,
+                'responsavel_nome' => $respNomeCompleto,
+                'criado_por_nome' => $r['criador_nome'] ?? '',
+                'concluido_em' => $r['concluido_em'],
+                'concluido_em_fmt' => $r['concluido_em'] ? date('d/m/Y H:i', strtotime($r['concluido_em'])) : null,
+                'created_at_fmt' => $r['created_at'] ? date('d/m/Y', strtotime($r['created_at'])) : '',
+                'dias_restantes' => $diasRestantes,
+                'is_atrasada' => $isAtrasada,
+                'is_critica_prazo' => $isCriticaPrazo
+            ];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'summary' => [
+                'total' => count($rows),
+                'ativas' => $totalAtivas,
+                'criticas' => $totalCriticas,
+                'atrasadas' => $totalAtrasadas,
+                'periodicas' => $totalPeriodicas,
+                'concluidas' => $totalConcluidas
+            ],
+            'tasks' => $tasks
+        ]);
+        exit;
+    }
+
+    // -------------------------------------------------------------
+    // 7. SALVAR TAREFA (CRIAR OU ATUALIZAR)
+    // -------------------------------------------------------------
+    if ($action === 'save_task') {
+        $id = (int)($_POST['id'] ?? 0);
+        $titulo = sanitize($_POST['titulo'] ?? '');
+        $descricao = trim($_POST['descricao'] ?? '');
+        $dataLimite = formatDateToSQL($_POST['data_limite'] ?? '');
+        $horaLimite = sanitize($_POST['hora_limite'] ?? '23:59:00');
+        $isPeriodica = !empty($_POST['is_periodica']) ? 1 : 0;
+        $periodicidade = sanitize($_POST['periodicidade'] ?? 'nenhuma');
+        $diaLembrete = sanitize($_POST['dia_lembrete'] ?? '');
+        $antecedencia = (int)($_POST['lembrete_antecedencia_dias'] ?? 3);
+        $prioridade = sanitize($_POST['prioridade'] ?? 'media');
+        $status = sanitize($_POST['status'] ?? 'pendente');
+        $categoria = sanitize($_POST['categoria'] ?? 'Geral');
+        $secaoId = !empty($_POST['secao_id']) ? (int)$_POST['secao_id'] : null;
+        $responsavelId = !empty($_POST['responsavel_id']) ? (int)$_POST['responsavel_id'] : null;
+
+        if (empty($titulo) || empty($dataLimite)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Título e Data Limite são campos obrigatórios.']);
+            exit;
+        }
+
+        if (!in_array($prioridade, ['baixa', 'media', 'alta', 'critica'])) {
+            $prioridade = 'media';
+        }
+
+        if (!in_array($status, ['pendente', 'em_andamento', 'concluida', 'cancelada'])) {
+            $status = 'pendente';
+        }
+
+        if (!in_array($periodicidade, ['nenhuma', 'semanal', 'quinzenal', 'mensal', 'anual'])) {
+            $periodicidade = 'nenhuma';
+        }
+
+        if (strlen($horaLimite) === 5) {
+            $horaLimite .= ':00';
+        }
+
+        $userId = $user['id'] ?? null;
+
+        if ($id > 0) {
+            $concluidoEm = ($status === 'concluida') ? date('Y-m-d H:i:s') : null;
+            $stmt = $db->prepare("
+                UPDATE tarefas_prazos SET 
+                    titulo = ?, 
+                    descricao = ?, 
+                    data_limite = ?, 
+                    hora_limite = ?, 
+                    is_periodica = ?, 
+                    periodicidade = ?, 
+                    dia_lembrete = ?, 
+                    lembrete_antecedencia_dias = ?, 
+                    prioridade = ?, 
+                    status = ?, 
+                    categoria = ?, 
+                    secao_id = ?, 
+                    responsavel_id = ?,
+                    concluido_em = IF(? = 'concluida', COALESCE(concluido_em, NOW()), NULL)
+                WHERE id = ?
+            ");
+            $stmt->execute([
+                $titulo, $descricao, $dataLimite, $horaLimite, $isPeriodica,
+                $periodicidade, $diaLembrete, $antecedencia, $prioridade,
+                $status, $categoria, $secaoId, $responsavelId, $status, $id
+            ]);
+
+            echo json_encode(['success' => true, 'message' => 'Tarefa atualizada com sucesso!', 'id' => $id]);
+            exit;
+        } else {
+            $concluidoEm = ($status === 'concluida') ? date('Y-m-d H:i:s') : null;
+            $stmt = $db->prepare("
+                INSERT INTO tarefas_prazos 
+                    (titulo, descricao, data_limite, hora_limite, is_periodica, periodicidade, dia_lembrete, lembrete_antecedencia_dias, prioridade, status, categoria, secao_id, responsavel_id, criado_por, concluido_em) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $titulo, $descricao, $dataLimite, $horaLimite, $isPeriodica,
+                $periodicidade, $diaLembrete, $antecedencia, $prioridade,
+                $status, $categoria, $secaoId, $responsavelId, $userId, $concluidoEm
+            ]);
+            $newId = $db->lastInsertId();
+
+            echo json_encode(['success' => true, 'message' => 'Tarefa com prazo cadastrada com sucesso!', 'id' => $newId]);
+            exit;
+        }
+    }
+
+    // -------------------------------------------------------------
+    // 8. ALTERNAR STATUS DA TAREFA (TOGGLE STATUS)
+    // -------------------------------------------------------------
+    if ($action === 'toggle_task_status') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID de tarefa inválido.']);
+            exit;
+        }
+
+        $stmt = $db->prepare("SELECT * FROM tarefas_prazos WHERE id = ?");
+        $stmt->execute([$id]);
+        $tarefa = $stmt->fetch();
+
+        if (!$tarefa) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Tarefa não encontrada.']);
+            exit;
+        }
+
+        $novoStatus = ($tarefa['status'] === 'concluida') ? 'pendente' : 'concluida';
+        $concluidoEm = ($novoStatus === 'concluida') ? date('Y-m-d H:i:s') : null;
+
+        $update = $db->prepare("UPDATE tarefas_prazos SET status = ?, concluido_em = ? WHERE id = ?");
+        $update->execute([$novoStatus, $concluidoEm, $id]);
+
+        echo json_encode([
+            'success' => true, 
+            'message' => $novoStatus === 'concluida' ? 'Tarefa marcada como CONCLUÍDA!' : 'Tarefa REABERTA como pendente!',
+            'status' => $novoStatus,
+            'concluido_em' => $concluidoEm ? date('d/m/Y H:i', strtotime($concluidoEm)) : null
+        ]);
+        exit;
+    }
+
+    // -------------------------------------------------------------
+    // 9. EXCLUIR TAREFA (DELETE_TASK)
+    // -------------------------------------------------------------
+    if ($action === 'delete_task') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID de tarefa inválido.']);
+            exit;
+        }
+
+        $stmt = $db->prepare("DELETE FROM tarefas_prazos WHERE id = ?");
+        $stmt->execute([$id]);
+
+        echo json_encode(['success' => true, 'message' => 'Tarefa excluída com sucesso!']);
+        exit;
+    }
+
+    // -------------------------------------------------------------
+    // 10. OBTER PRAZOS CRÍTICOS & ENTREGAS (GET_CRITICAL_DEADLINES)
+    // -------------------------------------------------------------
+    if ($action === 'get_critical_deadlines') {
+        $sec = getSecaoInfo($db);
+        $secTable = $sec['table'];
+        $secCol = $sec['name_col'];
+
+        $diasAlerta = (int)($_GET['dias'] ?? 7);
+
+        // Busca tarefas pendentes atrasadas OU vencendo nos próximos N dias OU marcadas como críticas
+        $stmt = $db->prepare("
+            SELECT t.*, 
+                   COALESCE(s.`$secCol`, 'Geral / Todas') as secao_nome,
+                   u_resp.war_name as responsavel_war_name,
+                   u_resp.name as responsavel_nome,
+                   u_resp.grade as responsavel_grade
+            FROM tarefas_prazos t
+            LEFT JOIN `$secTable` s ON t.secao_id = s.id
+            LEFT JOIN users u_resp ON t.responsavel_id = u_resp.id
+            WHERE t.status IN ('pendente', 'em_andamento')
+              AND (
+                  t.data_limite <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
+                  OR t.prioridade = 'critica'
+              )
+            ORDER BY (t.data_limite < CURDATE()) DESC, t.data_limite ASC, (t.prioridade = 'critica') DESC
+            LIMIT 20
+        ");
+        $stmt->execute([$diasAlerta]);
+        $rows = $stmt->fetchAll();
+
+        $hoje = new DateTime(date('Y-m-d'));
+        $criticalTasks = [];
+
+        foreach ($rows as $r) {
+            $dtLimite = new DateTime($r['data_limite']);
+            $diff = $hoje->diff($dtLimite);
+            $diasRestantes = (int)$diff->format('%r%a');
+            $isAtrasada = ($diasRestantes < 0);
+
+            $criticalTasks[] = [
+                'id' => (int)$r['id'],
+                'titulo' => $r['titulo'],
+                'descricao' => $r['descricao'],
+                'data_limite' => $r['data_limite'],
+                'data_limite_fmt' => formatSQLToDate($r['data_limite']),
+                'hora_limite' => $r['hora_limite'] ? substr($r['hora_limite'], 0, 5) : '23:59',
+                'is_periodica' => (bool)$r['is_periodica'],
+                'periodicidade' => $r['periodicidade'],
+                'dia_lembrete' => $r['dia_lembrete'],
+                'prioridade' => $r['prioridade'],
+                'status' => $r['status'],
+                'categoria' => $r['categoria'],
+                'secao_nome' => $r['secao_nome'],
+                'dias_restantes' => $diasRestantes,
+                'is_atrasada' => $isAtrasada
+            ];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'count' => count($criticalTasks),
+            'tasks' => $criticalTasks
+        ]);
+        exit;
+    }
+
 } catch (Exception $e) {
     if (isset($db) && $db->inTransaction()) {
         $db->rollBack();

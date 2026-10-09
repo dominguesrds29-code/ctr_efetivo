@@ -127,3 +127,39 @@ function getSecoesTableName($db) {
     $info = getSecaoInfo($db);
     return $info['table'];
 }
+
+function ensureTarefasTable($db) {
+    static $checked = false;
+    if ($checked) return;
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS `tarefas_prazos` (
+            `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            `titulo` VARCHAR(255) NOT NULL,
+            `descricao` TEXT NULL,
+            `data_limite` DATE NOT NULL,
+            `hora_limite` TIME NULL DEFAULT '23:59:00',
+            `is_periodica` TINYINT(1) NOT NULL DEFAULT 0,
+            `periodicidade` ENUM('nenhuma', 'semanal', 'quinzenal', 'mensal', 'anual') NOT NULL DEFAULT 'nenhuma',
+            `dia_lembrete` VARCHAR(100) NULL,
+            `lembrete_antecedencia_dias` INT NOT NULL DEFAULT 3,
+            `prioridade` ENUM('baixa', 'media', 'alta', 'critica') NOT NULL DEFAULT 'media',
+            `status` ENUM('pendente', 'em_andamento', 'concluida', 'cancelada') NOT NULL DEFAULT 'pendente',
+            `categoria` VARCHAR(100) NULL DEFAULT 'Geral',
+            `secao_id` BIGINT UNSIGNED NULL,
+            `responsavel_id` BIGINT UNSIGNED NULL,
+            `criado_por` BIGINT UNSIGNED NULL,
+            `concluido_em` DATETIME NULL,
+            `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_data_limite (`data_limite`),
+            INDEX idx_status (`status`),
+            INDEX idx_prioridade (`prioridade`),
+            INDEX idx_periodicidade (`periodicidade`),
+            INDEX idx_secao (`secao_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $checked = true;
+    } catch (Exception $e) {}
+}
+
+ensureTarefasTable($db);
+

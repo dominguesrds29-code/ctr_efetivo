@@ -99,6 +99,18 @@ try {
     $stmtAfastados->execute([$selectedDate]);
     $listaAfastados = $stmtAfastados->fetchAll();
 
+    // 5. Prazos Críticos & Próximas Entregas
+    $stmtPrazos = $db->query("
+        SELECT t.*, 
+               COALESCE(s.`$secCol`, 'Geral') as secao_nome
+        FROM tarefas_prazos t
+        LEFT JOIN `$secTable` s ON t.secao_id = s.id
+        WHERE t.status IN ('pendente', 'em_andamento')
+        ORDER BY (t.data_limite < CURDATE()) DESC, t.data_limite ASC, (t.prioridade = 'critica') DESC
+        LIMIT 6
+    ");
+    $prazosCriticos = $stmtPrazos->fetchAll();
+
 } catch (PDOException $e) {
     die("Erro ao calcular indicadores: " . $e->getMessage());
 }
@@ -107,9 +119,47 @@ try {
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel da Chefia - Controle de Efetivo DTCEA-SJ</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .prazos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .prazo-item {
+            background: #F8FAFC;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+        .prazo-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06);
+            background: #FFFFFF;
+        }
+        .prazo-item.critica { border-left-color: var(--danger); }
+        .prazo-item.alta { border-left-color: var(--warning); }
+        .prazo-item.media { border-left-color: var(--info); }
+        .prazo-item.baixa { border-left-color: var(--success); }
+        .prazo-item.atrasada { background-color: #FFF5F5; border-left-color: var(--danger); }
+
+        .prazo-badge-rec {
+            font-size: 0.72rem;
+            background: #F3E8FF;
+            color: #7E22CE;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
@@ -137,6 +187,10 @@ try {
             <a href="dashboard.php" class="nav-link active">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 Painel da Chefia
+            </a>
+            <a href="tarefas.php" class="nav-link">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M9 16l2 2 4-4"></path></svg>
+                Prazos e Entregas
             </a>
             <?php if ($user['perfil'] === 'admin'): ?>
                 <a href="admin.php" class="nav-link">
@@ -285,6 +339,80 @@ try {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Bloco Prazos Críticos & Próximas Entregas -->
+            <div class="section-card" style="margin-top: 25px; grid-column: 1 / -1;">
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <svg width="20" height="20" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M9 16l2 2 4-4"></path></svg>
+                        <span>Prazos Críticos e Entregas</span>
+                    </div>
+                    <a href="tarefas.php" style="font-size: 0.85rem; font-weight: 700; color: var(--primary); text-decoration: underline;">Gerenciar Todas as Entregas &rarr;</a>
+                </div>
+                
+                <?php if (empty($prazosCriticos)): ?>
+                    <p style="text-align: center; color: var(--text-muted); padding: 25px 0; margin: 0;">Nenhuma entrega pendente cadastrada no momento.</p>
+                <?php else: ?>
+                    <div class="prazos-list">
+                        <?php 
+                        $hojeDt = new DateTime(date('Y-m-d'));
+                        foreach ($prazosCriticos as $pz): 
+                            $dtPrazo = new DateTime($pz['data_limite']);
+                            $diffPz = $hojeDt->diff($dtPrazo);
+                            $diasRestPz = (int)$diffPz->format('%r%a');
+                            $isAtrasadaPz = ($diasRestPz < 0);
+                            $classeItem = $isAtrasadaPz ? 'atrasada' : ($pz['prioridade'] ?? 'media');
+                        ?>
+                            <div class="prazo-item <?= $classeItem ?>">
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                        <strong style="font-size: 1rem; color: var(--primary);"><?= htmlspecialchars($pz['titulo']) ?></strong>
+                                        <span class="status-badge" style="background: #EDF2F7; color: #4A5568; font-size: 0.72rem;"><?= htmlspecialchars($pz['categoria'] ?? 'Geral') ?></span>
+                                        <?php if (!empty($pz['is_periodica'])): ?>
+                                            <span class="prazo-badge-rec">
+                                                🔄 <?= ucfirst($pz['periodicidade']) ?><?= !empty($pz['dia_lembrete']) ? ' - ' . htmlspecialchars($pz['dia_lembrete']) : '' ?>
+                                            </span>
+                                        <?php endif; ?>
+                                        <span class="status-badge <?= $pz['prioridade'] === 'critica' ? 'dm' : ($pz['prioridade'] === 'alta' ? 'sv' : 'p') ?>" style="font-size: 0.72rem; text-transform: uppercase;">
+                                            <?= $pz['prioridade'] ?>
+                                        </span>
+                                    </div>
+                                    <?php if (!empty($pz['descricao'])): ?>
+                                        <div style="font-size: 0.85rem; color: #4A5568;"><?= htmlspecialchars($pz['descricao']) ?></div>
+                                    <?php endif; ?>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                                        Seção: <strong><?= htmlspecialchars($pz['secao_nome']) ?></strong>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; min-width: 140px;">
+                                    <div style="font-weight: 700; font-size: 0.92rem;">
+                                        <?= date('d/m/Y', strtotime($pz['data_limite'])) ?>
+                                    </div>
+                                    <div style="margin-top: 4px;">
+                                        <?php if ($isAtrasadaPz): ?>
+                                            <span style="background: #FEE2E2; color: #DC2626; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 10px;">
+                                                ⚠️ Atrasada (<?= abs($diasRestPz) ?>d)
+                                            </span>
+                                        <?php elseif ($diasRestPz === 0): ?>
+                                            <span style="background: #FEF3C7; color: #B45309; font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 10px;">
+                                                🔥 Vence Hoje!
+                                            </span>
+                                        <?php elseif ($diasRestPz <= 3): ?>
+                                            <span style="background: #FFEDD5; color: #EA580C; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 10px;">
+                                                ⏳ Vence em <?= $diasRestPz ?>d
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="background: #E2E8F0; color: #475569; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 10px;">
+                                                📅 Em <?= $diasRestPz ?> dias
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
         </div>

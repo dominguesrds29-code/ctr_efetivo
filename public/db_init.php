@@ -61,6 +61,87 @@ try {
     }
     echo "Tabela 'sections' sincronizada com sucesso (15 seções).\n";
 
+    // 3. Criar tabela de tarefas com prazo e entregas críticas
+    $db->exec("CREATE TABLE IF NOT EXISTS `tarefas_prazos` (
+        `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `titulo` VARCHAR(255) NOT NULL,
+        `descricao` TEXT NULL,
+        `data_limite` DATE NOT NULL,
+        `hora_limite` TIME NULL DEFAULT '23:59:00',
+        `is_periodica` TINYINT(1) NOT NULL DEFAULT 0,
+        `periodicidade` ENUM('nenhuma', 'semanal', 'quinzenal', 'mensal', 'anual') NOT NULL DEFAULT 'nenhuma',
+        `dia_lembrete` VARCHAR(100) NULL COMMENT 'Ex: Toda segunda-feira, Todo dia 05, etc.',
+        `lembrete_antecedencia_dias` INT NOT NULL DEFAULT 3 COMMENT 'Dias de antecedência para aviso crítico',
+        `prioridade` ENUM('baixa', 'media', 'alta', 'critica') NOT NULL DEFAULT 'media',
+        `status` ENUM('pendente', 'em_andamento', 'concluida', 'cancelada') NOT NULL DEFAULT 'pendente',
+        `categoria` VARCHAR(100) NULL DEFAULT 'Geral',
+        `secao_id` BIGINT UNSIGNED NULL,
+        `responsavel_id` BIGINT UNSIGNED NULL,
+        `criado_por` BIGINT UNSIGNED NULL,
+        `concluido_em` DATETIME NULL,
+        `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_data_limite (`data_limite`),
+        INDEX idx_status (`status`),
+        INDEX idx_prioridade (`prioridade`),
+        INDEX idx_periodicidade (`periodicidade`),
+        INDEX idx_secao (`secao_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    echo "Tabela 'tarefas_prazos' verificada/criada com sucesso!\n";
+
+    // Inserir registros de exemplo caso a tabela esteja vazia
+    $countTarefas = $db->query("SELECT COUNT(*) FROM `tarefas_prazos`")->fetchColumn();
+    if ($countTarefas == 0) {
+        $dataHoje = date('Y-m-d');
+        $proximoMes = date('Y-m-20', strtotime('+1 month'));
+        $proximaSexta = date('Y-m-d', strtotime('next friday'));
+
+        $stmtTarefa = $db->prepare("INSERT INTO `tarefas_prazos` 
+            (`titulo`, `descricao`, `data_limite`, `is_periodica`, `periodicidade`, `dia_lembrete`, `lembrete_antecedencia_dias`, `prioridade`, `status`, `categoria`) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        $stmtTarefa->execute([
+            'Lançar Férias',
+            'Realizar o lançamento e conferência das previsões de fruição de férias do efetivo no sistema para o próximo período.',
+            $proximoMes,
+            1,
+            'mensal',
+            'Todo dia 20 de cada mês',
+            5,
+            'alta',
+            'pendente',
+            'Férias'
+        ]);
+
+        $stmtTarefa->execute([
+            'Conferência Semanal da Escala',
+            'Validar as escalas de serviço e sobreaviso da próxima semana para publicação oficial.',
+            $proximaSexta,
+            1,
+            'semanal',
+            'Toda sexta-feira',
+            2,
+            'critica',
+            'pendente',
+            'Escala'
+        ]);
+
+        $stmtTarefa->execute([
+            'Relatório Mensal de Efetivo',
+            'Consolidar os indicadores mensais de presenças, afastamentos e inspeções de saúde para o Comando.',
+            date('Y-m-t'),
+            1,
+            'mensal',
+            'Último dia do mês',
+            3,
+            'critica',
+            'pendente',
+            'Administrativo'
+        ]);
+
+        echo "Tarefas iniciais padrão cadastradas com sucesso!\n";
+    }
+
     echo "Banco de dados 'efetivosj' pronto para operação!\n";
 
 } catch (Exception $e) {
