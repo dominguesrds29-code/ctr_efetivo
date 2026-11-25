@@ -26,6 +26,11 @@ if (isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
+    <link rel="shortcut icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="DTCEA-SJ" />
+    <link rel="manifest" href="site.webmanifest" />
     <title>Manual do Usuário - Controle de Efetivo DTCEA-SJ</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
